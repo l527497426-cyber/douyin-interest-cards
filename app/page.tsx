@@ -3,7 +3,6 @@
 import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Blaze from "../components/canvasui/Blaze";
 import Liquid, { type LiquidOptions } from "../components/canvasui/Liquid";
-import LiquidObject from "../components/canvasui/LiquidObject";
 
 const CREATE_URL = "https://creator.douyin.com/creator-micro/ai-application/agent_market?_withType=true&space=%22ai_ext_personal%22";
 // The portal starts at reference frame 187/193, mapped into the video's 82% scrub range.
@@ -11,6 +10,8 @@ const HERO_PORTAL_START_SCROLL_PROGRESS=.794;
 const HERO_PORTAL_END_SCROLL_PROGRESS=.98;
 const HERO_VIDEO_END_SCROLL_PROGRESS=.82;
 const HERO_LIQUID_END_PORTAL_PROGRESS=.7;
+const HERO_FRAME_COUNT=193;
+const heroFrameSrc=(index:number)=>`/assets/hero-frames-v4/frame-${String(index+1).padStart(3,"0")}.webp`;
 const INTEREST_AUTOPLAY_MS=8000;
 const interestDirections = [
   {
@@ -374,11 +375,11 @@ function HorizontalCases(){
 }
 
 export default function Home(){
-  const heroVideoRef=useRef<HTMLVideoElement>(null);
+  const heroFrameCanvasRef=useRef<HTMLCanvasElement>(null);
   const heroVideoMotionRef=useRef<HTMLDivElement>(null);
   const heroCtaRef=useRef<HTMLAnchorElement>(null);
-  const heroVideoTargetRef=useRef(0);
-  const heroVideoSeekQueuedRef=useRef(false);
+  const heroFrameTargetRef=useRef(0);
+  const requestHeroFrameRef=useRef<(index:number)=>void>(()=>{});
   const interestSectionRef=useRef<HTMLElement>(null);
   const [interest,setInterest]=useState(0);
   const [interestAutoplay,setInterestAutoplay]=useState(false);
@@ -395,6 +396,9 @@ export default function Home(){
   const [liquidTuning,setLiquidTuning]=useState<HeroLiquidTuning>(DEFAULT_HERO_LIQUID);
   const [blazePanelOpen,setBlazePanelOpen]=useState(true);
   const [blazeTuning,setBlazeTuning]=useState<BlazeTuning>(DEFAULT_BLAZE_TUNING);
+  const [finalCardDragging,setFinalCardDragging]=useState(false);
+  const [finalCardRotation,setFinalCardRotation]=useState({x:0,y:0});
+  const finalCardDragRef=useRef<{pointerId:number;startX:number;startY:number;baseX:number;baseY:number}|null>(null);
   const buttonLiquidTuning=DEFAULT_BUTTON_LIQUID;
   const [heroIntroVisible,setHeroIntroVisible]=useState(true);
   useLayoutEffect(()=>{
@@ -490,15 +494,31 @@ export default function Home(){
     return()=>{window.removeEventListener("wheel",onWheel);window.removeEventListener("touchstart",onTouchStart);window.removeEventListener("touchmove",onTouchMove)};
   },[]);
   useEffect(()=>{
+    const canvas=heroFrameCanvasRef.current;
+    if(!canvas)return;
+    let disposed=false;
+    let warmTimer=0;
+    const context=canvas.getContext("2d",{alpha:false});
+    if(!context)return;
+    const decoded=new Map<number,ImageBitmap>();
+    const pending=new Map<number,Promise<ImageBitmap|null>>();
+    const touch=(index:number,bitmap:ImageBitmap)=>{decoded.delete(index);decoded.set(index,bitmap);while(decoded.size>24){const oldest=decoded.entries().next().value as [number,ImageBitmap]|undefined;if(!oldest)break;decoded.delete(oldest[0]);oldest[1].close()}};
+    const draw=(bitmap:ImageBitmap)=>{const rect=canvas.getBoundingClientRect();if(rect.width<1||rect.height<1)return;const ratio=Math.min(window.devicePixelRatio||1,1.5);const width=Math.min(1600,Math.max(1,Math.round(rect.width*ratio)));const height=Math.max(1,Math.round(rect.height*ratio));if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height}const scale=Math.max(width/bitmap.width,height/bitmap.height);const drawWidth=bitmap.width*scale;const drawHeight=bitmap.height*scale;context.drawImage(bitmap,(width-drawWidth)/2,(height-drawHeight)/2,drawWidth,drawHeight)};
+    const load=(index:number)=>{const safe=Math.max(0,Math.min(HERO_FRAME_COUNT-1,index));const cached=decoded.get(safe);if(cached){touch(safe,cached);return Promise.resolve(cached)}const active=pending.get(safe);if(active)return active;const task=fetch(heroFrameSrc(safe),{cache:"force-cache"}).then(response=>{if(!response.ok)throw new Error(`Frame ${safe+1} failed`);return response.blob()}).then(blob=>createImageBitmap(blob)).then(bitmap=>{pending.delete(safe);if(disposed){bitmap.close();return null}touch(safe,bitmap);if(heroFrameTargetRef.current===safe)draw(bitmap);return bitmap}).catch(()=>{pending.delete(safe);return null});pending.set(safe,task);return task};
+    requestHeroFrameRef.current=(index:number)=>{const safe=Math.max(0,Math.min(HERO_FRAME_COUNT-1,index));heroFrameTargetRef.current=safe;const cached=decoded.get(safe);if(cached){touch(safe,cached);draw(cached)};[safe,safe+1,safe-1,safe+2,safe-2].forEach(load)};
+    requestHeroFrameRef.current(heroFrameTargetRef.current);
+    let warmIndex=0;
+    const warm=()=>{if(disposed||warmIndex>=HERO_FRAME_COUNT)return;const batch=Array.from({length:4},()=>warmIndex++).filter(index=>index<HERO_FRAME_COUNT);Promise.all(batch.map(index=>fetch(heroFrameSrc(index),{cache:"force-cache"}).then(response=>response.arrayBuffer()).catch(()=>null))).finally(()=>{if(!disposed)warmTimer=window.setTimeout(warm,70)})};
+    warmTimer=window.setTimeout(warm,300);
+    const resizeObserver=new ResizeObserver(()=>{const current=decoded.get(heroFrameTargetRef.current);if(current)draw(current)});
+    resizeObserver.observe(canvas);
+    return()=>{disposed=true;window.clearTimeout(warmTimer);resizeObserver.disconnect();requestHeroFrameRef.current=()=>{};decoded.forEach(bitmap=>bitmap.close());decoded.clear();pending.clear()};
+  },[liquidEnabled]);
+  useEffect(()=>{
     let ticking=false;
-    let videoFrame=0;
-    const renderVideoFrame=()=>{videoFrame=0;const video=heroVideoRef.current;if(!video||!Number.isFinite(video.duration)||video.duration<=0)return;const target=Math.min(video.duration,video.duration*heroVideoTargetRef.current);if(Math.abs(video.currentTime-target)<.008){heroVideoSeekQueuedRef.current=false;return}if(video.seeking){heroVideoSeekQueuedRef.current=true;return}heroVideoSeekQueuedRef.current=false;video.currentTime=target};
-    const queueVideoFrame=()=>{if(!videoFrame)videoFrame=requestAnimationFrame(renderVideoFrame)};
-    const onVideoSeeked=()=>{if(heroVideoSeekQueuedRef.current)queueVideoFrame()};
-    const video=heroVideoRef.current;video?.addEventListener("seeked",onVideoSeeked);
-    const update=()=>{const hero=document.querySelector<HTMLElement>(".edition-hero");if(!hero)return;const range=Math.max(hero.offsetHeight-window.innerHeight,1);const progress=Math.min(1,Math.max(0,-hero.getBoundingClientRect().top/range));heroVideoTargetRef.current=scrollPhase(progress,0,HERO_VIDEO_END_SCROLL_PROGRESS);queueVideoFrame();setHeroProgress(progress);setHeroStep(Math.min(2,Math.floor(progress*3)));ticking=false};
+    const update=()=>{const hero=document.querySelector<HTMLElement>(".edition-hero");if(!hero)return;const range=Math.max(hero.offsetHeight-window.innerHeight,1);const progress=Math.min(1,Math.max(0,-hero.getBoundingClientRect().top/range));const frame=Math.round(scrollPhase(progress,0,HERO_VIDEO_END_SCROLL_PROGRESS)*(HERO_FRAME_COUNT-1));requestHeroFrameRef.current(frame);setHeroProgress(progress);setHeroStep(Math.min(2,Math.floor(progress*3)));ticking=false};
     const onScroll=()=>{if(!ticking){requestAnimationFrame(update);ticking=true}};
-    update();window.addEventListener("scroll",onScroll,{passive:true});return()=>{window.removeEventListener("scroll",onScroll);video?.removeEventListener("seeked",onVideoSeeked);if(videoFrame)cancelAnimationFrame(videoFrame)};
+    update();window.addEventListener("scroll",onScroll,{passive:true});return()=>window.removeEventListener("scroll",onScroll);
   },[liquidEnabled]);
   useEffect(()=>{
     const motion=heroVideoMotionRef.current;
@@ -614,7 +634,7 @@ export default function Home(){
 
     <section className={`edition-hero step-${heroStep}`}>
       <div className={`hero-sticky hero-scroll-scrubbed${heroIntroVisible?" hero-intro-playing":""}`}>
-        <div className="hero-scene scene-one hero-video-scene" style={{opacity:1,transform:"scale(1)"}}><div ref={heroVideoMotionRef} className="hero-video-motion">{liquidEnabled?<Liquid className="hero-liquid" pointerTarget=".hero-sticky" active={portalProgress<HERO_LIQUID_END_PORTAL_PROGRESS} forceFallback {...heroLiquidOptions}><div className="hero-video-content"><video key="hero-video-v4-liquid" ref={heroVideoRef} src="/assets/hero-scroll-scrub-v4.mp4" muted playsInline preload="auto" aria-label="抖音兴趣卡首屏创意视频"/><div className="hero-video-shade"/></div></Liquid>:<div className="hero-video-content"><video key="hero-video-v4-plain" ref={heroVideoRef} src="/assets/hero-scroll-scrub-v4.mp4" muted playsInline preload="auto" aria-label="抖音兴趣卡首屏创意视频"/><div className="hero-video-shade"/></div>}</div></div>
+        <div className="hero-scene scene-one hero-video-scene" style={{opacity:1,transform:"scale(1)"}}><div ref={heroVideoMotionRef} className="hero-video-motion">{liquidEnabled?<Liquid className="hero-liquid" pointerTarget=".hero-sticky" active={portalProgress<HERO_LIQUID_END_PORTAL_PROGRESS} forceFallback {...heroLiquidOptions}><div className="hero-video-content"><canvas key="hero-frames-v4-liquid" ref={heroFrameCanvasRef} className="hero-frame-canvas" aria-label="抖音兴趣卡首屏创意画面"/><div className="hero-video-shade"/></div></Liquid>:<div className="hero-video-content"><canvas key="hero-frames-v4-plain" ref={heroFrameCanvasRef} className="hero-frame-canvas" aria-label="抖音兴趣卡首屏创意画面"/><div className="hero-video-shade"/></div>}</div></div>
         <div className="hero-scene scene-three" style={{opacity:portalProgress>.002?1:0,WebkitMaskImage:portalMask,maskImage:portalMask,transform:"scale(1)"}}><div className="white-field"/><Liquid className="scene-three-hover-liquid" style={{opacity:sceneThreeEnter,transform:"translate3d(var(--hero-shift-x,0),var(--hero-shift-y,0),0) scale(1.022)"}} pointerTarget=".hero-sticky" active={sceneThreeEnter>.01} forceFallback simResolution={96} dyeResolution={384} densityDissipation={.955} velocityDissipation={.93} pressure={.68} pressureIterations={3} curl={1.4} radius={.24} force={.85} intensity={.25} distortion={1.1} blend={6.5} color={[.2,.56,1]} rainbow><div className="hero-line-art"><img src="/assets/hero-line-art-final-frames-v4.png" alt=""/></div></Liquid><div className="hero-line-art-wash"/></div>
         <PortalTransition progress={portalProgress}/>
         {heroIntroVisible&&<div className="hero-intro-liquid-layer" aria-hidden="true" onAnimationEnd={()=>setHeroIntroVisible(false)}><Liquid className="hero-intro-liquid" intro overlayOnly forceFallback simResolution={64} dyeResolution={256} densityDissipation={.92} dissipationVariation={.88} velocityDissipation={.9} pressure={.55} pressureIterations={2} curl={1.05} radius={7.5} force={.4} intensity={4.8} distortion={0} blend={0} color={[.93,.97,1]} rainbow={false}><div className="hero-intro-liquid-content"/></Liquid></div>}
@@ -667,11 +687,11 @@ export default function Home(){
         <section id="chapter-5" className="chapter chapter-final">
           <Blaze className="final-blaze" style={{"--blaze-brightness":blazeTuning.brightness,"--blaze-saturation":blazeTuning.saturation} as CSSProperties} height={blazeTuning.height} distortion={blazeTuning.distortion} distortionScale={blazeTuning.distortionScale} speed={blazeTuning.speed} sparks={blazeTuning.sparks} sparkDensity={blazeTuning.sparkDensity} sparkSize={blazeTuning.sparkSize} layers={blazeTuning.layers} smoke={blazeTuning.smoke} glow={blazeTuning.glow} sparkColor={hexToLiquidColor(blazeTuning.sparkColor)} smokeColor={hexToLiquidColor(blazeTuning.smokeColor)}><div className="final-blaze-field"/></Blaze>
           <div className="final-bg-word">IDEA</div><div className="final-copy"><SoftBlurInGroup kicker="准备好了吗？" title={"从一个想法开始，\n做出你的第一张兴趣卡"} body="进入抖音创作者中心，用一句话生成并发布你的兴趣卡。"/><div className="content-rise" style={{"--content-rise-delay":"240ms"} as CSSProperties}><a className="responsive-button" href={CREATE_URL}><ResponsiveButtonLabel full="开始创作" short="创作"/> <ButtonArrow/></a><a className="responsive-button" href="#chapter-4"><ResponsiveButtonLabel full="查看课程" short="课程"/></a></div></div>
-          <div className="interest-card-showcase" aria-label="匀速旋转的三维抖音兴趣卡示例">
-            <div className="interest-flip-card content-rise" style={{"--content-rise-delay":"320ms"} as CSSProperties}>
+          <div className={`interest-card-showcase${finalCardDragging?" is-dragging":""}`} aria-label="可拖拽旋转的三维抖音兴趣卡示例" onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);finalCardDragRef.current={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,baseX:finalCardRotation.x,baseY:finalCardRotation.y};setFinalCardDragging(true)}} onPointerMove={event=>{const drag=finalCardDragRef.current;if(!drag||drag.pointerId!==event.pointerId)return;setFinalCardRotation({x:Math.max(-6,Math.min(6,drag.baseX-(event.clientY-drag.startY)*.055)),y:drag.baseY+(event.clientX-drag.startX)*.34})}} onPointerUp={event=>{if(finalCardDragRef.current?.pointerId!==event.pointerId)return;finalCardDragRef.current=null;setFinalCardDragging(false);event.currentTarget.releasePointerCapture(event.pointerId)}} onPointerCancel={()=>{finalCardDragRef.current=null;setFinalCardDragging(false)}}>
+            <div className="interest-flip-card content-rise" style={{"--content-rise-delay":"320ms","--card-drag-x":`${finalCardRotation.x}deg`,"--card-drag-y":`${finalCardRotation.y}deg`} as CSSProperties}>
               <div className="interest-card-inner">
                 <article className="interest-card-face interest-card-front">
-                  <div className="interest-card-cover"><LiquidObject className="interest-card-liquid-cover" src="/assets/case-gallery-reference-v4.png" distortion={.12} aberration={.04} grain={.04} sheen={.16} cursorSize={.38} cursorForce={.12} persistence={.18} swirl={.06} iridescence={.05} splash={0} ambient={.025} wobble={.035} gloss={.28} metallic={0} depth={.012} bevel={.08} highlight="#d9efff" environmentIntensity={.62} brightness={1.01} saturation={1.04} background="#bdd6ff" scale={3.45} yOffset={-.06} floatIntensity={.025} rotationIntensity={.02} floatSpeed={.7} orbit={false} zoom={false} autoRotate={false}/><span>抖音兴趣卡</span></div>
+                  <div className="interest-card-cover"><img src="/assets/case-gallery-reference-v4.png" alt="春日艺术展览场景"/><span>抖音兴趣卡</span></div>
                   <div className="interest-card-copy"><small>INTEREST CARD　01</small><h3>今天适合<br/>逛什么展？</h3><p>回答几个兴趣问题，生成你的春日逛展人格。</p><div><b>兴趣人格</b><span>抖音兴趣卡</span></div></div>
                 </article>
                 <article className="interest-card-face interest-card-back" aria-hidden="true">

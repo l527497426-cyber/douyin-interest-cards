@@ -388,6 +388,9 @@ export default function Home(){
   const activeInterestImage=interestFeatureImages[activeInterest.name]??interestFeatureImages["网球"]!;
   const [heroStep,setHeroStep]=useState(0);
   const [heroProgress,setHeroProgress]=useState(0);
+  const [heroFrameReady,setHeroFrameReady]=useState(false);
+  const [heroFrameRendered,setHeroFrameRendered]=useState(false);
+  const [heroLoadHintVisible,setHeroLoadHintVisible]=useState(false);
   const [activeChapter,setActiveChapter]=useState(0);
   const [headerTheme,setHeaderTheme]=useState<"dark"|"light">("dark");
   const [headerOverHero,setHeaderOverHero]=useState(true);
@@ -422,6 +425,22 @@ export default function Home(){
     };
   },[]);
   useEffect(()=>{if(window.matchMedia("(prefers-reduced-motion: reduce)").matches)setHeroIntroVisible(false)},[]);
+  useEffect(()=>{
+    if(heroFrameReady){setHeroLoadHintVisible(false);return}
+    const timer=window.setTimeout(()=>setHeroLoadHintVisible(true),420);
+    return()=>window.clearTimeout(timer);
+  },[heroFrameReady]);
+  useEffect(()=>{
+    if(heroFrameReady||window.location.hash)return;
+    const preventScroll=(event:Event)=>event.preventDefault();
+    const preventKeyScroll=(event:KeyboardEvent)=>{
+      if([" ","ArrowDown","PageDown","End"].includes(event.key))event.preventDefault();
+    };
+    window.addEventListener("wheel",preventScroll,{passive:false});
+    window.addEventListener("touchmove",preventScroll,{passive:false});
+    window.addEventListener("keydown",preventKeyScroll);
+    return()=>{window.removeEventListener("wheel",preventScroll);window.removeEventListener("touchmove",preventScroll);window.removeEventListener("keydown",preventKeyScroll)};
+  },[heroFrameReady]);
   useEffect(()=>{
     const nodes=Array.from(document.querySelectorAll<HTMLElement>(".content-rise"));
     if(!nodes.length)return;
@@ -498,21 +517,27 @@ export default function Home(){
     if(!canvas)return;
     let disposed=false;
     let warmTimer=0;
+    let readyTimer=0;
+    setHeroFrameReady(false);
+    setHeroFrameRendered(false);
     const context=canvas.getContext("2d",{alpha:false});
     if(!context)return;
     const decoded=new Map<number,ImageBitmap>();
     const pending=new Map<number,Promise<ImageBitmap|null>>();
     const touch=(index:number,bitmap:ImageBitmap)=>{decoded.delete(index);decoded.set(index,bitmap);while(decoded.size>24){const oldest=decoded.entries().next().value as [number,ImageBitmap]|undefined;if(!oldest)break;decoded.delete(oldest[0]);oldest[1].close()}};
-    const draw=(bitmap:ImageBitmap)=>{const rect=canvas.getBoundingClientRect();if(rect.width<1||rect.height<1)return;const ratio=Math.min(window.devicePixelRatio||1,1.5,1600/rect.width);const width=Math.max(1,Math.round(rect.width*ratio));const height=Math.max(1,Math.round(rect.height*ratio));if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height}const scale=Math.max(width/bitmap.width,height/bitmap.height);const drawWidth=bitmap.width*scale;const drawHeight=bitmap.height*scale;context.drawImage(bitmap,(width-drawWidth)/2,(height-drawHeight)/2,drawWidth,drawHeight);canvas.dispatchEvent(new CustomEvent("liquidcontentchange",{bubbles:true}))};
+    const draw=(bitmap:ImageBitmap)=>{const rect=canvas.getBoundingClientRect();if(rect.width<1||rect.height<1)return;const ratio=Math.min(window.devicePixelRatio||1,1.5,1600/rect.width);const width=Math.max(1,Math.round(rect.width*ratio));const height=Math.max(1,Math.round(rect.height*ratio));if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height}const scale=Math.max(width/bitmap.width,height/bitmap.height);const drawWidth=bitmap.width*scale;const drawHeight=bitmap.height*scale;context.drawImage(bitmap,(width-drawWidth)/2,(height-drawHeight)/2,drawWidth,drawHeight);setHeroFrameRendered(true);canvas.dispatchEvent(new CustomEvent("liquidcontentchange",{bubbles:true}))};
     const load=(index:number)=>{const safe=Math.max(0,Math.min(HERO_FRAME_COUNT-1,index));const cached=decoded.get(safe);if(cached){touch(safe,cached);return Promise.resolve(cached)}const active=pending.get(safe);if(active)return active;const task=fetch(heroFrameSrc(safe),{cache:"force-cache"}).then(response=>{if(!response.ok)throw new Error(`Frame ${safe+1} failed`);return response.blob()}).then(blob=>createImageBitmap(blob)).then(bitmap=>{pending.delete(safe);if(disposed){bitmap.close();return null}touch(safe,bitmap);if(heroFrameTargetRef.current===safe)draw(bitmap);return bitmap}).catch(()=>{pending.delete(safe);return null});pending.set(safe,task);return task};
     requestHeroFrameRef.current=(index:number)=>{const safe=Math.max(0,Math.min(HERO_FRAME_COUNT-1,index));heroFrameTargetRef.current=safe;const cached=decoded.get(safe);if(cached){touch(safe,cached);draw(cached)};[safe,safe+1,safe-1,safe+2,safe-2].forEach(load)};
-    requestHeroFrameRef.current(heroFrameTargetRef.current);
-    let warmIndex=0;
+    heroFrameTargetRef.current=0;
+    requestHeroFrameRef.current(0);
+    Promise.all([load(0),load(1),load(2)]).finally(()=>{if(!disposed){window.clearTimeout(readyTimer);setHeroFrameReady(true)}});
+    readyTimer=window.setTimeout(()=>{if(!disposed)setHeroFrameReady(true)},3500);
+    let warmIndex=3;
     const warm=()=>{if(disposed||warmIndex>=HERO_FRAME_COUNT)return;const batch=Array.from({length:4},()=>warmIndex++).filter(index=>index<HERO_FRAME_COUNT);Promise.all(batch.map(index=>fetch(heroFrameSrc(index),{cache:"force-cache"}).then(response=>response.arrayBuffer()).catch(()=>null))).finally(()=>{if(!disposed)warmTimer=window.setTimeout(warm,70)})};
     warmTimer=window.setTimeout(warm,300);
     const resizeObserver=new ResizeObserver(()=>{const current=decoded.get(heroFrameTargetRef.current);if(current)draw(current)});
     resizeObserver.observe(canvas);
-    return()=>{disposed=true;window.clearTimeout(warmTimer);resizeObserver.disconnect();requestHeroFrameRef.current=()=>{};decoded.forEach(bitmap=>bitmap.close());decoded.clear();pending.clear()};
+    return()=>{disposed=true;window.clearTimeout(warmTimer);window.clearTimeout(readyTimer);resizeObserver.disconnect();requestHeroFrameRef.current=()=>{};decoded.forEach(bitmap=>bitmap.close());decoded.clear();pending.clear()};
   },[liquidEnabled]);
   useEffect(()=>{
     let ticking=false;
@@ -620,6 +645,7 @@ export default function Home(){
   const updateBlaze=<K extends keyof BlazeTuning>(key:K,value:BlazeTuning[K])=>setBlazeTuning(current=>({...current,[key]:value}));
   const selectInterest=(index:number)=>{setInterest(index);setInterestCycle(cycle=>cycle+1)};
   const heroLiquidOptions:LiquidOptions={simResolution:96,dyeResolution:384,velocityDissipation:.93,pressure:.68,pressureIterations:3,force:liquidTuning.force,radius:liquidTuning.radius,distortion:liquidTuning.distortion,blend:liquidTuning.blend,intensity:liquidTuning.intensity,densityDissipation:liquidTuning.densityDissipation,curl:liquidTuning.curl,color:hexToLiquidColor(liquidTuning.color),rainbow:liquidTuning.rainbow};
+  const heroFallbackStyle={backgroundImage:`url("${heroFrameSrc(0)}")`} as CSSProperties;
   return <main className="editions-page">
     <header className={`edition-header header-${headerTheme}${headerOverHero?" header-hero":""}`}>
       <div className="header-main">
@@ -634,9 +660,10 @@ export default function Home(){
 
     <section className={`edition-hero step-${heroStep}`}>
       <div className={`hero-sticky hero-scroll-scrubbed${heroIntroVisible?" hero-intro-playing":""}`}>
-        <div className="hero-scene scene-one hero-video-scene" style={{opacity:1,transform:"scale(1)"}}><div ref={heroVideoMotionRef} className="hero-video-motion">{liquidEnabled?<Liquid className="hero-liquid" pointerTarget=".hero-sticky" active={portalProgress<HERO_LIQUID_END_PORTAL_PROGRESS} forceFallback {...heroLiquidOptions}><div className="hero-video-content"><canvas key="hero-frames-v4-liquid" ref={heroFrameCanvasRef} className="hero-frame-canvas" aria-label="抖音兴趣卡首屏创意画面"/><div className="hero-video-shade"/></div></Liquid>:<div className="hero-video-content"><canvas key="hero-frames-v4-plain" ref={heroFrameCanvasRef} className="hero-frame-canvas" aria-label="抖音兴趣卡首屏创意画面"/><div className="hero-video-shade"/></div>}</div></div>
+        <div className="hero-scene scene-one hero-video-scene" style={{opacity:1,transform:"scale(1)"}}><div ref={heroVideoMotionRef} className="hero-video-motion">{liquidEnabled?<Liquid className="hero-liquid" pointerTarget=".hero-sticky" active={portalProgress<HERO_LIQUID_END_PORTAL_PROGRESS} forceFallback {...heroLiquidOptions}><div className={`hero-video-content${heroFrameRendered?" is-frame-rendered":""}`} style={heroFallbackStyle}><canvas key="hero-frames-v4-liquid" ref={heroFrameCanvasRef} className="hero-frame-canvas" aria-label="抖音兴趣卡首屏创意画面"/><div className="hero-video-shade"/></div></Liquid>:<div className={`hero-video-content${heroFrameRendered?" is-frame-rendered":""}`} style={heroFallbackStyle}><canvas key="hero-frames-v4-plain" ref={heroFrameCanvasRef} className="hero-frame-canvas" aria-label="抖音兴趣卡首屏创意画面"/><div className="hero-video-shade"/></div>}</div></div>
         <div className="hero-scene scene-three" style={{opacity:portalProgress>.002?1:0,WebkitMaskImage:portalMask,maskImage:portalMask,transform:"scale(1)"}}><div className="white-field"/><Liquid className="scene-three-hover-liquid" style={{opacity:sceneThreeEnter,transform:"translate3d(var(--hero-shift-x,0),var(--hero-shift-y,0),0) scale(1.022)"}} pointerTarget=".hero-sticky" active={sceneThreeEnter>.01} forceFallback simResolution={96} dyeResolution={384} densityDissipation={.955} velocityDissipation={.93} pressure={.68} pressureIterations={3} curl={1.4} radius={.24} force={.85} intensity={.25} distortion={1.1} blend={6.5} color={[.2,.56,1]} rainbow><div className="hero-line-art"><img src="/assets/hero-line-art-final-frames-v4.png" alt=""/></div></Liquid><div className="hero-line-art-wash"/></div>
         <PortalTransition progress={portalProgress}/>
+        <div className={`hero-load-gate${heroFrameReady?" is-ready":""}${heroLoadHintVisible?" is-visible":""}`} role="status" aria-live="polite" aria-hidden={!heroLoadHintVisible}><div className="hero-load-gate-inner"><span>抖音兴趣卡</span><i aria-hidden="true"><b/><b/><b/></i><small>正在准备画面</small></div></div>
         {heroIntroVisible&&<div className="hero-intro-liquid-layer" aria-hidden="true" onAnimationEnd={()=>setHeroIntroVisible(false)}><Liquid className="hero-intro-liquid" intro overlayOnly forceFallback simResolution={64} dyeResolution={256} densityDissipation={.92} dissipationVariation={.88} velocityDissipation={.9} pressure={.55} pressureIterations={2} curl={1.05} radius={7.5} force={.4} intensity={4.8} distortion={0} blend={0} color={[.93,.97,1]} rainbow={false}><div className="hero-intro-liquid-content"/></Liquid></div>}
         <div className="hero-index hero-copy" style={{opacity:1,color:heroInk,transform:`translate(-50%,calc(-50% + ${112*(1-copySettle)}px))`}}>
           <small className="hero-badge-raster" style={{opacity:1,transform:"none"}} aria-label="抖音兴趣卡"><img src="/assets/hero-interest-badge@3x.png" alt="" aria-hidden="true"/></small>

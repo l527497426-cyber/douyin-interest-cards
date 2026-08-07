@@ -3,6 +3,7 @@
 import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Blaze from "../components/canvasui/Blaze";
 import Liquid, { type LiquidOptions } from "../components/canvasui/Liquid";
+import LiquidObject from "../components/canvasui/LiquidObject";
 
 const CREATE_URL = "https://creator.douyin.com/creator-micro/ai-application/agent_market?_withType=true&space=%22ai_ext_personal%22";
 // The portal starts at reference frame 187/193, mapped into the video's 82% scrub range.
@@ -670,7 +671,7 @@ export default function Home(){
             <div className="interest-flip-card content-rise" style={{"--content-rise-delay":"320ms"} as CSSProperties}>
               <div className="interest-card-inner">
                 <article className="interest-card-face interest-card-front">
-                  <div className="interest-card-cover"><img src="/assets/case-gallery-reference-v4.png" alt="春日艺术展览场景"/><span>抖音兴趣卡</span></div>
+                  <div className="interest-card-cover"><LiquidObject className="interest-card-liquid-cover" src="/assets/case-gallery-reference-v4.png" distortion={.12} aberration={.04} grain={.04} sheen={.16} cursorSize={.38} cursorForce={.12} persistence={.18} swirl={.06} iridescence={.05} splash={0} ambient={.025} wobble={.035} gloss={.28} metallic={0} depth={.012} bevel={.08} highlight="#d9efff" environmentIntensity={.62} brightness={1.01} saturation={1.04} background="#bdd6ff" scale={3.45} yOffset={-.06} floatIntensity={.025} rotationIntensity={.02} floatSpeed={.7} orbit={false} zoom={false} autoRotate={false}/><span>抖音兴趣卡</span></div>
                   <div className="interest-card-copy"><small>INTEREST CARD　01</small><h3>今天适合<br/>逛什么展？</h3><p>回答几个兴趣问题，生成你的春日逛展人格。</p><div><b>兴趣人格</b><span>抖音兴趣卡</span></div></div>
                 </article>
                 <article className="interest-card-face interest-card-back" aria-hidden="true">

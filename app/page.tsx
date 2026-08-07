@@ -5,9 +5,11 @@ import Blaze from "../components/canvasui/Blaze";
 import Liquid, { type LiquidOptions } from "../components/canvasui/Liquid";
 
 const CREATE_URL = "https://creator.douyin.com/creator-micro/ai-application/agent_market?_withType=true&space=%22ai_ext_personal%22";
-const HERO_END_FRAME_HOLD_SECONDS=10*1001/60000;
-const HERO_VIDEO_END_PORTAL_PROGRESS=.65;
-const HERO_VIDEO_END_TIMELINE=.5+(.72-.5)*HERO_VIDEO_END_PORTAL_PROGRESS;
+// The portal starts at reference frame 187/193, mapped into the video's 82% scrub range.
+const HERO_PORTAL_START_SCROLL_PROGRESS=.794;
+const HERO_PORTAL_END_SCROLL_PROGRESS=.98;
+const HERO_VIDEO_END_SCROLL_PROGRESS=.82;
+const HERO_LIQUID_END_PORTAL_PROGRESS=.7;
 const INTEREST_AUTOPLAY_MS=8000;
 const interestDirections = [
   {
@@ -152,14 +154,14 @@ const hexToLiquidColor=(value:string):[number,number,number]=>{
   return [0,2,4].map(index=>parseInt(hex.slice(index,index+2),16)/255) as [number,number,number];
 };
 const cases = [
-  { tag: "兴趣工具", title: "找到适合你的\n机械键盘", desc: "根据手感、声音与使用场景，找到更适合的轴体与配列。", creator: "@键盘研究室 · 数码创作者", image: "/assets/case-keyboard-centered-v3.png", cls: "sky" },
-  { tag: "赛车知识", title: "测测你是哪种\nF1 车手", desc: "从驾驶风格与赛道偏好，生成你的赛车人格。", creator: "@赛道第十三弯 · 赛车创作者", image: "/assets/case-f1-forest-blue-gold-v6.png", cls: "pink" },
-  { tag: "兴趣人格", title: "测测你的\n春日逛展人格", desc: "根据审美偏好与逛展习惯，匹配你的春日艺术人格。", creator: "@今天看什么展 · 艺术创作者", image: "/assets/case-gallery-reference-v4.png", cls: "orange" },
-  { tag: "路线推荐", title: "生成你的\n周末城市漫游地图", desc: "从街区、咖啡与书店偏好，生成一条周末探索路线。", creator: "@城市散步指南 · 生活方式创作者", image: "/assets/case-city-reference-v4.png", cls: "green" },
+  { tag: "兴趣工具", title: "找到适合你的\n机械键盘", desc: "根据手感、声音与使用场景，找到更适合的轴体与配列。", creator: "@键盘研究室 · 数码创作者", image: "/assets/case-keyboard-centered-v3.png", screen: "/assets/case-ui-keyboard-banner-v2.png", cls: "sky", fallbackHue: 215 },
+  { tag: "赛车知识", title: "测测你是哪种\nF1 车手", desc: "从驾驶风格与赛道偏好，生成你的赛车人格。", creator: "@赛道第十三弯 · 赛车创作者", image: "/assets/case-f1-forest-blue-gold-v6.png", screen: "/assets/case-ui-f1-banner-v2.png", cls: "pink", fallbackHue: 218 },
+  { tag: "兴趣人格", title: "测测你的\n春日逛展人格", desc: "根据审美偏好与逛展习惯，匹配你的春日艺术人格。", creator: "@今天看什么展 · 艺术创作者", image: "/assets/case-gallery-reference-v4.png", screen: "/assets/case-ui-gallery-banner-v2.png", cls: "orange", fallbackHue: 20 },
+  { tag: "路线推荐", title: "生成你的\n周末城市漫游地图", desc: "从街区、咖啡与书店偏好，生成一条周末探索路线。", creator: "@城市散步指南 · 生活方式创作者", image: "/assets/case-city-reference-v4.png", screen: "/assets/case-ui-city-banner-v2.png", cls: "green", fallbackHue: 145 },
 ];
 
 function Rail({ active = 0 }: { active?: number }) {
-  return <aside className="edition-rail"><div className="rail-brand"><div className="rail-mark">DOUYIN<br /><i>Interest</i><br />Cards</div><span>抖音兴趣卡</span></div><ol>{chapterLinks.map((item,i)=><li className={i===active?"active":""} key={item.label}><a href={item.href}><span>{item.label}</span><b>{toRoman(i+1)}</b></a></li>)}</ol><a className="rail-create" href={CREATE_URL}>开始创作 <ButtonArrow/></a></aside>;
+  return <aside className="edition-rail"><div className="rail-brand"><div className="rail-mark">DOUYIN<br /><i>Interest</i><br />Cards</div><span>抖音兴趣卡</span></div><ol>{chapterLinks.map((item,i)=><li className={i===active?"active":""} key={item.label}><a href={item.href}><span>{item.label}</span><b>{toRoman(i+1)}</b></a></li>)}</ol><a className="rail-create responsive-button" href={CREATE_URL}><ResponsiveButtonLabel full="开始创作" short="创作"/> <ButtonArrow/></a></aside>;
 }
 function toRoman(n:number){return ["I","II","III","IV","V"][n-1]}
 
@@ -205,6 +207,10 @@ function SoftBlurInGroup({kicker,title,body}:{kicker:string;title:string;body:st
 
 function ButtonArrow({dark=false}:{dark?:boolean}){
   return <img className={`button-arrow${dark?" dark":""}`} src="/assets/button-arrow-up-right.svg" alt="" aria-hidden="true"/>;
+}
+
+function ResponsiveButtonLabel({full,short}:{full:string;short:string}){
+  return <span className="responsive-button-label"><span className="button-label-full">{full}</span><span className="button-label-short">{short}</span></span>;
 }
 
 function LiquidRange({label,value,min,max,step,onChange}: {label:string;value:number;min:number;max:number;step:number;onChange:(value:number)=>void}){
@@ -258,6 +264,94 @@ function PortalTransition({progress}:{progress:number}){
   return <canvas ref={canvasRef} className="hero-portal-edge" aria-hidden="true"/>;
 }
 
+type CasePalette={hue:number;secondaryHue:number;saturation:number};
+
+const rgbToHsl=(red:number,green:number,blue:number)=>{
+  const r=red/255,g=green/255,b=blue/255;
+  const max=Math.max(r,g,b),min=Math.min(r,g,b),delta=max-min;
+  let hue=0;
+  if(delta){
+    if(max===r)hue=60*(((g-b)/delta)%6);
+    else if(max===g)hue=60*((b-r)/delta+2);
+    else hue=60*((r-g)/delta+4);
+  }
+  if(hue<0)hue+=360;
+  const light=(max+min)/2;
+  const saturation=delta===0?0:delta/(1-Math.abs(2*light-1));
+  return {hue,saturation,light};
+};
+
+const paletteStyle=({hue,secondaryHue,saturation}:CasePalette)=>{
+  const sat=Math.round(Math.min(54,Math.max(30,saturation*62)));
+  const secondarySat=Math.round(Math.max(24,sat*.82));
+  return {
+    "--case-info-base":`hsl(${hue.toFixed(1)} ${sat}% 87%)`,
+    "--case-info-soft":`hsl(${secondaryHue.toFixed(1)} ${secondarySat}% 92%)`,
+    "--case-info-glow":`hsla(${hue.toFixed(1)}, ${Math.min(66,sat+10)}%, 72%, .48)`,
+    "--case-media-base":`hsl(${hue.toFixed(1)} ${Math.max(24,sat-7)}% 91%)`,
+    "--case-media-soft":`hsl(${secondaryHue.toFixed(1)} ${Math.max(20,secondarySat-5)}% 95%)`,
+    "--case-media-glow":`hsla(${secondaryHue.toFixed(1)}, ${Math.min(60,secondarySat+8)}%, 75%, .38)`,
+    "--case-border":`hsla(${hue.toFixed(1)}, ${Math.min(60,sat+4)}%, 34%, .28)`,
+  } as CSSProperties;
+};
+
+function useMaterialPalette(src:string,fallbackHue:number){
+  const [palette,setPalette]=useState<CasePalette>({hue:fallbackHue,secondaryHue:(fallbackHue+22)%360,saturation:.55});
+  useEffect(()=>{
+    let cancelled=false;
+    const image=new Image();
+    image.crossOrigin="anonymous";
+    image.onload=()=>{
+      if(cancelled)return;
+      const canvas=document.createElement("canvas");
+      canvas.width=48;canvas.height=48;
+      const context=canvas.getContext("2d",{willReadFrequently:true});
+      if(!context)return;
+      context.drawImage(image,0,0,canvas.width,canvas.height);
+      const pixels=context.getImageData(0,0,canvas.width,canvas.height).data;
+      const weights=Array(36).fill(0) as number[];
+      const satTotals=Array(36).fill(0) as number[];
+      const sinTotals=Array(36).fill(0) as number[];
+      const cosTotals=Array(36).fill(0) as number[];
+      for(let pixel=0;pixel<pixels.length;pixel+=4){
+        if(pixels[pixel+3]<200)continue;
+        const hsl=rgbToHsl(pixels[pixel],pixels[pixel+1],pixels[pixel+2]);
+        if(hsl.saturation<.08||hsl.light<.055||hsl.light>.95)continue;
+        const bucket=Math.min(35,Math.floor(hsl.hue/10));
+        const middleWeight=1-Math.min(1,Math.abs(hsl.light-.53)/.48);
+        const weight=Math.pow(hsl.saturation,1.35)*(.42+.58*middleWeight);
+        weights[bucket]+=weight;
+        satTotals[bucket]+=hsl.saturation*weight;
+        sinTotals[bucket]+=Math.sin(hsl.hue*Math.PI/180)*weight;
+        cosTotals[bucket]+=Math.cos(hsl.hue*Math.PI/180)*weight;
+      }
+      const ranked=weights.map((weight,index)=>({index,score:weight+weights[(index+35)%36]*.55+weights[(index+1)%36]*.55})).sort((a,b)=>b.score-a.score);
+      const primary=ranked[0];
+      if(!primary||primary.score<.35)return;
+      const hueFor=(bucket:number)=>{
+        let sin=0,cos=0,weight=0,saturation=0;
+        for(const offset of [-1,0,1]){
+          const index=(bucket+offset+36)%36;
+          sin+=sinTotals[index];cos+=cosTotals[index];weight+=weights[index];saturation+=satTotals[index];
+        }
+        return {hue:(Math.atan2(sin,cos)*180/Math.PI+360)%360,saturation:weight?saturation/weight:.5};
+      };
+      const first=hueFor(primary.index);
+      const secondary=ranked.find(item=>{const distance=Math.abs(item.index-primary.index);return Math.min(distance,36-distance)>=4&&item.score>primary.score*.16});
+      const second=secondary?hueFor(secondary.index):{hue:(first.hue+22)%360,saturation:first.saturation*.82};
+      if(!cancelled)setPalette({hue:first.hue,secondaryHue:second.hue,saturation:(first.saturation+second.saturation*.35)/1.35});
+    };
+    image.src=src;
+    return()=>{cancelled=true};
+  },[src,fallbackHue]);
+  return palette;
+}
+
+function CreatorCaseCard({item}:{item:(typeof cases)[number]}){
+  const palette=useMaterialPalette(item.screen,item.fallbackHue);
+  return <article className={`editorial-card horizontal-card ${item.cls}`} style={{...paletteStyle(palette),"--case-scene":`url("${item.image}")`} as CSSProperties}><div className="case-media"><img className="case-media-backdrop" src={item.image} alt=""/><div className="case-phone-stage"><div className="case-phone"><img className="case-phone-screen" src={item.screen} alt={`${item.title.replace("\n","")}兴趣卡界面`}/><img className="case-phone-hardware" src="/assets/case-phone-hardware.png" alt=""/></div></div></div><div className="case-info"><small>{item.tag}</small><h3>{item.title.split("\n").map((text,lineIndex)=><span key={lineIndex}>{text}<br/></span>)}</h3><p>{item.desc}</p><em>{item.creator}</em><div><a className="responsive-button icon-collapse" href={CREATE_URL} aria-label={`围绕${item.title.replace("\n","")}创作同类兴趣卡`}><ResponsiveButtonLabel full="创作同类" short="创作"/> <ButtonArrow dark/></a><button className="responsive-button icon-collapse" aria-label={`体验${item.title.replace("\n","")}案例`}><ResponsiveButtonLabel full="体验案例" short="体验"/> <ButtonArrow/></button></div></div></article>;
+}
+
 function HorizontalCases(){
   const sectionRef=useRef<HTMLElement>(null);
   const [progress,setProgress]=useState(0);
@@ -275,7 +369,7 @@ function HorizontalCases(){
     update();window.addEventListener("scroll",onScroll,{passive:true});
     return()=>{window.removeEventListener("scroll",onScroll);if(frame)cancelAnimationFrame(frame)};
   },[]);
-  return <section id="chapter-3" ref={sectionRef} className="chapter chapter-cases horizontal-cases"><div className="cases-sticky"><div className="cases-heading"><div><SoftBlurInGroup kicker="创作者生态" title="来自创作者的兴趣卡作品" body="四个真实兴趣方向，展示创作者如何把内容转化为可体验、可分享的兴趣卡。"/></div><b>{String(Math.min(cases.length,Math.floor(progress*cases.length)+1)).padStart(2,"0")} / {String(cases.length).padStart(2,"0")}</b></div><div className="bend-shell content-rise" style={{"--content-rise-delay":"180ms"} as CSSProperties}><div className="cases-bend cases-flat"><div className="horizontal-track" style={{transform:`translate3d(${-progress*184}vw, 0, 0)`}}>{cases.map((c,i)=><article className={`editorial-card horizontal-card ${c.cls}`} key={c.title}><div className="case-no">{String(i+1).padStart(2,"0")}</div><div className="case-media"><img src={c.image} alt=""/></div><div className="case-info"><small>{c.tag}</small><h3>{c.title.split("\n").map((x,j)=><span key={j}>{x}<br/></span>)}</h3><p>{c.desc}</p><em>{c.creator}</em><div><a href={CREATE_URL}>创作同类 <ButtonArrow dark/></a><button>体验案例 <ButtonArrow/></button></div></div></article>)}</div></div></div></div></section>;
+  return <section id="chapter-3" ref={sectionRef} className="chapter chapter-cases horizontal-cases"><div className="cases-sticky"><div className="cases-heading"><div><SoftBlurInGroup kicker="创作者生态" title="来自创作者的兴趣卡作品" body="四个真实兴趣方向，展示创作者如何把内容转化为可体验、可分享的兴趣卡。"/></div><b>{String(Math.min(cases.length,Math.floor(progress*cases.length)+1)).padStart(2,"0")} / {String(cases.length).padStart(2,"0")}</b></div><div className="bend-shell content-rise" style={{"--content-rise-delay":"180ms"} as CSSProperties}><div className="cases-bend cases-flat"><div className="horizontal-track" style={{transform:`translate3d(${-progress*184}vw, 0, 0)`}}>{cases.map(item=><CreatorCaseCard item={item} key={item.title}/>)}</div></div></div></div></section>;
 }
 
 export default function Home(){
@@ -397,11 +491,11 @@ export default function Home(){
   useEffect(()=>{
     let ticking=false;
     let videoFrame=0;
-    const renderVideoFrame=()=>{videoFrame=0;const video=heroVideoRef.current;if(!video||!Number.isFinite(video.duration)||video.duration<=0)return;const target=Math.min(video.duration-HERO_END_FRAME_HOLD_SECONDS,video.duration*heroVideoTargetRef.current);if(Math.abs(video.currentTime-target)<.008){heroVideoSeekQueuedRef.current=false;return}if(video.seeking){heroVideoSeekQueuedRef.current=true;return}heroVideoSeekQueuedRef.current=false;video.currentTime=target};
+    const renderVideoFrame=()=>{videoFrame=0;const video=heroVideoRef.current;if(!video||!Number.isFinite(video.duration)||video.duration<=0)return;const target=Math.min(video.duration,video.duration*heroVideoTargetRef.current);if(Math.abs(video.currentTime-target)<.008){heroVideoSeekQueuedRef.current=false;return}if(video.seeking){heroVideoSeekQueuedRef.current=true;return}heroVideoSeekQueuedRef.current=false;video.currentTime=target};
     const queueVideoFrame=()=>{if(!videoFrame)videoFrame=requestAnimationFrame(renderVideoFrame)};
     const onVideoSeeked=()=>{if(heroVideoSeekQueuedRef.current)queueVideoFrame()};
     const video=heroVideoRef.current;video?.addEventListener("seeked",onVideoSeeked);
-    const update=()=>{const hero=document.querySelector<HTMLElement>(".edition-hero");if(!hero)return;const range=Math.max(hero.offsetHeight-window.innerHeight,1);const progress=Math.min(1,Math.max(0,-hero.getBoundingClientRect().top/range));const timeline=scrollBezier(progress);const portalVideoProgress=scrollPhase(timeline,.5,HERO_VIDEO_END_TIMELINE);const videoBeforePortal=Math.min(.78,progress/.64);heroVideoTargetRef.current=portalVideoProgress>0?.78+.22*portalVideoProgress:videoBeforePortal;queueVideoFrame();setHeroProgress(progress);setHeroStep(Math.min(2,Math.floor(progress*3)));ticking=false};
+    const update=()=>{const hero=document.querySelector<HTMLElement>(".edition-hero");if(!hero)return;const range=Math.max(hero.offsetHeight-window.innerHeight,1);const progress=Math.min(1,Math.max(0,-hero.getBoundingClientRect().top/range));heroVideoTargetRef.current=scrollPhase(progress,0,HERO_VIDEO_END_SCROLL_PROGRESS);queueVideoFrame();setHeroProgress(progress);setHeroStep(Math.min(2,Math.floor(progress*3)));ticking=false};
     const onScroll=()=>{if(!ticking){requestAnimationFrame(update);ticking=true}};
     update();window.addEventListener("scroll",onScroll,{passive:true});return()=>{window.removeEventListener("scroll",onScroll);video?.removeEventListener("seeked",onVideoSeeked);if(videoFrame)cancelAnimationFrame(videoFrame)};
   },[liquidEnabled]);
@@ -415,8 +509,12 @@ export default function Home(){
       const ease=1-Math.exp(-elapsed/110);
       currentX+=(targetX-currentX)*ease;
       currentY+=(targetY-currentY)*ease;
-      motion.style.setProperty("--hero-shift-x",`${(-currentX*12).toFixed(3)}px`);
-      motion.style.setProperty("--hero-shift-y",`${(-currentY*8).toFixed(3)}px`);
+      const shiftX=`${(-currentX*12).toFixed(3)}px`;
+      const shiftY=`${(-currentY*8).toFixed(3)}px`;
+      motion.style.setProperty("--hero-shift-x",shiftX);
+      motion.style.setProperty("--hero-shift-y",shiftY);
+      hero.style.setProperty("--hero-shift-x",shiftX);
+      hero.style.setProperty("--hero-shift-y",shiftY);
       if(Math.abs(targetX-currentX)>.001||Math.abs(targetY-currentY)>.001)frame=requestAnimationFrame(render);
       else frame=0;
     };
@@ -431,7 +529,7 @@ export default function Home(){
     const onPointerLeave=()=>{targetX=0;targetY=0;wake()};
     hero.addEventListener("pointermove",onPointerMove,{passive:true});
     hero.addEventListener("pointerleave",onPointerLeave);
-    return()=>{hero.removeEventListener("pointermove",onPointerMove);hero.removeEventListener("pointerleave",onPointerLeave);if(frame)cancelAnimationFrame(frame)};
+    return()=>{hero.removeEventListener("pointermove",onPointerMove);hero.removeEventListener("pointerleave",onPointerLeave);hero.style.removeProperty("--hero-shift-x");hero.style.removeProperty("--hero-shift-y");if(frame)cancelAnimationFrame(frame)};
   },[liquidEnabled]);
   useEffect(()=>{
     const sections = ["chapter-1","chapter-2","chapter-3","chapter-4"];
@@ -460,7 +558,7 @@ export default function Home(){
       if(heroBottom>60){
         const range=Math.max((hero?.offsetHeight ?? 0)-window.innerHeight,1);
         const progress=Math.min(1,Math.max(0,-(hero?.getBoundingClientRect().top ?? 0)/range));
-        setHeaderTheme(progress<.5?"dark":"light");
+        setHeaderTheme(progress<HERO_PORTAL_START_SCROLL_PROGRESS?"dark":"light");
       }else{
         const line=30;
         const isDark=["chapter-5"].some(id=>{const el=document.getElementById(id);if(!el)return false;const rect=el.getBoundingClientRect();return rect.top<=line&&rect.bottom>line});
@@ -473,15 +571,15 @@ export default function Home(){
     return()=>{window.removeEventListener("scroll",onScroll);if(frame)cancelAnimationFrame(frame)};
   },[]);
   const heroTimeline=scrollBezier(heroProgress);
-  const portalProgress=scrollPhase(heroTimeline,.5,.72);
+  const portalProgress=scrollPhase(heroProgress,HERO_PORTAL_START_SCROLL_PROGRESS,HERO_PORTAL_END_SCROLL_PROGRESS);
+  const thirdActControlsIn=scrollPhase(portalProgress,0,.24);
   const heroShadowOut=scrollPhase(portalProgress,0,.24);
-  const sceneThreeEnter=scrollPhase(heroTimeline,.54,.7);
-  const lineArtScale=.982+.018*sceneThreeEnter;
-  const descriptionIn=scrollPhase(heroTimeline,.18,.43);
-  const actionsIn=scrollPhase(heroTimeline,.4,.69);
-  const capabilitiesIn=scrollPhase(heroTimeline,.48,.75);
+  const sceneThreeEnter=portalProgress;
+  const descriptionIn=scrollPhase(heroProgress,.34,.56);
+  const actionsIn=thirdActControlsIn;
+  const capabilitiesIn=thirdActControlsIn;
   const copySettle=scrollPhase(heroTimeline,.12,.72);
-  const titleScaleProgress=scrollBezier(scrollPhase(heroProgress,.14,.48));
+  const titleScaleProgress=scrollBezier(scrollPhase(heroProgress,.22,.56));
   const titleScale=1-.14*titleScaleProgress;
   const titleLayoutCompensation=32*((1-titleScale)/.14);
   const inkR=Math.round(255+(17-255)*sceneThreeEnter);
@@ -515,15 +613,15 @@ export default function Home(){
 
     <section className={`edition-hero step-${heroStep}`}>
       <div className={`hero-sticky hero-scroll-scrubbed${heroIntroVisible?" hero-intro-playing":""}`}>
-        <div className="hero-scene scene-one hero-video-scene" style={{opacity:1,transform:"scale(1)"}}><div ref={heroVideoMotionRef} className="hero-video-motion">{liquidEnabled?<Liquid className="hero-liquid" pointerTarget=".hero-sticky" active={portalProgress<HERO_VIDEO_END_PORTAL_PROGRESS+.05} forceFallback {...heroLiquidOptions}><div className="hero-video-content"><video ref={heroVideoRef} src="/assets/hero-scroll-scrub-hq16.mp4" muted playsInline preload="auto" aria-label="抖音兴趣卡首屏创意视频" onLoadedMetadata={event=>{const video=event.currentTarget;video.currentTime=Math.min(video.duration-HERO_END_FRAME_HOLD_SECONDS,video.duration*heroVideoTargetRef.current)}}/><div className="hero-video-shade"/></div></Liquid>:<div className="hero-video-content"><video ref={heroVideoRef} src="/assets/hero-scroll-scrub-hq16.mp4" muted playsInline preload="auto" aria-label="抖音兴趣卡首屏创意视频" onLoadedMetadata={event=>{const video=event.currentTarget;video.currentTime=Math.min(video.duration-HERO_END_FRAME_HOLD_SECONDS,video.duration*heroVideoTargetRef.current)}}/><div className="hero-video-shade"/></div>}</div></div>
-        <div className="hero-scene scene-three" style={{opacity:portalProgress>.002?1:0,WebkitMaskImage:portalMask,maskImage:portalMask,transform:"scale(1)"}}><div className="white-field"/><Liquid className="scene-three-hover-liquid" style={{opacity:sceneThreeEnter,transform:`scale(${lineArtScale})`}} pointerTarget=".hero-sticky" active={sceneThreeEnter>.01} forceFallback simResolution={96} dyeResolution={384} densityDissipation={.955} velocityDissipation={.93} pressure={.68} pressureIterations={3} curl={1.4} radius={.24} force={.85} intensity={.25} distortion={1.1} blend={6.5} color={[.2,.56,1]} rainbow><div className="hero-line-art"><img src="/assets/hero-line-art-ascii-aligned-v3.png" alt=""/></div></Liquid><div className="hero-line-art-wash"/></div>
+        <div className="hero-scene scene-one hero-video-scene" style={{opacity:1,transform:"scale(1)"}}><div ref={heroVideoMotionRef} className="hero-video-motion">{liquidEnabled?<Liquid className="hero-liquid" pointerTarget=".hero-sticky" active={portalProgress<HERO_LIQUID_END_PORTAL_PROGRESS} forceFallback {...heroLiquidOptions}><div className="hero-video-content"><video key="hero-video-v4-intra-liquid" ref={heroVideoRef} src="/assets/hero-scroll-scrub-v4-intra.mp4" muted playsInline preload="auto" aria-label="抖音兴趣卡首屏创意视频"/><div className="hero-video-shade"/></div></Liquid>:<div className="hero-video-content"><video key="hero-video-v4-intra-plain" ref={heroVideoRef} src="/assets/hero-scroll-scrub-v4-intra.mp4" muted playsInline preload="auto" aria-label="抖音兴趣卡首屏创意视频"/><div className="hero-video-shade"/></div>}</div></div>
+        <div className="hero-scene scene-three" style={{opacity:portalProgress>.002?1:0,WebkitMaskImage:portalMask,maskImage:portalMask,transform:"scale(1)"}}><div className="white-field"/><Liquid className="scene-three-hover-liquid" style={{opacity:sceneThreeEnter,transform:"translate3d(var(--hero-shift-x,0),var(--hero-shift-y,0),0) scale(1.022)"}} pointerTarget=".hero-sticky" active={sceneThreeEnter>.01} forceFallback simResolution={96} dyeResolution={384} densityDissipation={.955} velocityDissipation={.93} pressure={.68} pressureIterations={3} curl={1.4} radius={.24} force={.85} intensity={.25} distortion={1.1} blend={6.5} color={[.2,.56,1]} rainbow><div className="hero-line-art"><img src="/assets/hero-line-art-final-frames-v4.png" alt=""/></div></Liquid><div className="hero-line-art-wash"/></div>
         <PortalTransition progress={portalProgress}/>
         {heroIntroVisible&&<div className="hero-intro-liquid-layer" aria-hidden="true" onAnimationEnd={()=>setHeroIntroVisible(false)}><Liquid className="hero-intro-liquid" intro overlayOnly forceFallback simResolution={64} dyeResolution={256} densityDissipation={.92} dissipationVariation={.88} velocityDissipation={.9} pressure={.55} pressureIterations={2} curl={1.05} radius={7.5} force={.4} intensity={4.8} distortion={0} blend={0} color={[.93,.97,1]} rainbow={false}><div className="hero-intro-liquid-content"/></Liquid></div>}
         <div className="hero-index hero-copy" style={{opacity:1,color:heroInk,transform:`translate(-50%,calc(-50% + ${112*(1-copySettle)}px))`}}>
           <small className="hero-badge-raster" style={{opacity:1,transform:"none"}} aria-label="抖音兴趣卡"><img src="/assets/hero-interest-badge@3x.png" alt="" aria-hidden="true"/></small>
           <h1 style={{opacity:1,color:heroInk,textShadow:heroTitleShadow,transform:`scale(${titleScale})`,marginBottom:`-${titleLayoutCompensation}px`}}>把一个兴趣想法，<br/>变成人和人都能参与的内容</h1>
           <p style={{opacity:descriptionIn,color:heroBodyInk,textShadow:heroCopyShadow,transform:`translateY(${24*(1-descriptionIn)}px)`}}>从真实兴趣出发，快速生成可体验、可发布的互动内容，<br/>并在抖音 Feed 场景中触达用户。</p>
-          <div className="hero-actions" style={{opacity:actionsIn,transform:`translateY(${26*(1-actionsIn)}px)`,pointerEvents:actionsIn>.92?"auto":"none"}}><a ref={heroCtaRef} className="hero-primary-cta hero-liquid-orbit-target" href={CREATE_URL} style={{backgroundColor:primaryButton}}><Liquid className="hero-button-liquid" style={{opacity:buttonLiquidTuning.opacity}} pointerTarget=".hero-liquid-orbit-target" active={actionsIn>.04} forceFallback overlayOnly simResolution={48} dyeResolution={192} densityDissipation={buttonLiquidTuning.densityDissipation} dissipationVariation={.16} velocityDissipation={buttonLiquidTuning.velocityDissipation} pressure={.62} pressureIterations={2} curl={buttonLiquidTuning.curl} radius={buttonLiquidTuning.radius} force={buttonLiquidTuning.force} intensity={buttonLiquidTuning.intensity} distortion={0} blend={0} color={hexToLiquidColor(buttonLiquidTuning.color)} rainbow={buttonLiquidTuning.rainbow}><div className="hero-button-liquid-fill"/></Liquid><span className="hero-primary-label">开始创作 <ButtonArrow/></span></a><a href="#chapter-3" style={{backgroundColor:secondaryButton,borderColor:secondaryBorder,color:"#111315"}}>浏览案例</a></div>
+          <div className="hero-actions" style={{opacity:actionsIn,transform:`translateY(${26*(1-actionsIn)}px)`,pointerEvents:actionsIn>.92?"auto":"none"}}><a ref={heroCtaRef} className="hero-primary-cta hero-liquid-orbit-target responsive-button" href={CREATE_URL} style={{backgroundColor:primaryButton}}><Liquid className="hero-button-liquid" style={{opacity:buttonLiquidTuning.opacity}} pointerTarget=".hero-liquid-orbit-target" active={actionsIn>.04} forceFallback overlayOnly simResolution={48} dyeResolution={192} densityDissipation={buttonLiquidTuning.densityDissipation} dissipationVariation={.16} velocityDissipation={buttonLiquidTuning.velocityDissipation} pressure={.62} pressureIterations={2} curl={buttonLiquidTuning.curl} radius={buttonLiquidTuning.radius} force={buttonLiquidTuning.force} intensity={buttonLiquidTuning.intensity} distortion={0} blend={0} color={hexToLiquidColor(buttonLiquidTuning.color)} rainbow={buttonLiquidTuning.rainbow}><div className="hero-button-liquid-fill"/></Liquid><span className="hero-primary-label"><ResponsiveButtonLabel full="开始创作" short="创作"/> <ButtonArrow/></span></a><a className="responsive-button" href="#chapter-3" style={{backgroundColor:secondaryButton,borderColor:secondaryBorder,color:"#111315"}}><ResponsiveButtonLabel full="浏览案例" short="案例"/></a></div>
           <div className="hero-capabilities" style={{opacity:capabilitiesIn,color:heroBodyInk,textShadow:heroCopyShadow,transform:`translateY(${22*(1-capabilitiesIn)}px)`}}>自然语言生成 <i>·</i> 实时预览 <i>·</i> 一键发布到抖音</div>
         </div>
         <div className="hero-step-label" style={{color:heroInk}}><b>{String(heroStep+1).padStart(2,"0")}</b><span>{["兴趣，从一个真实问题开始","真实需求，正在形成可创作的回应","生成、预览、发布，一步完成"][heroStep]}</span></div>
@@ -550,7 +648,7 @@ export default function Home(){
           <div className="chapter-head"><div><SoftBlurInGroup kicker="本期流量悬赏" title={"这些兴趣，\n正在等待新玩法"} body="每期围绕一个真实兴趣方向开放创作，从用户问题中找到值得回应的新玩法。"/></div></div>
           <div className="interest-strip content-rise" style={{"--content-rise-delay":"120ms"} as CSSProperties}>{interests.map((x,i)=><button className={i===interest?"active":""} onClick={()=>selectInterest(i)} key={x}>{x}{i===interest&&<span key={`${interest}-${interestCycle}`} className={`interest-progress${interestAutoplay?" playing":""}`} aria-hidden="true"/>}</button>)}</div>
           <div className="direction-module content-rise" style={{"--content-rise-delay":"220ms"} as CSSProperties}>
-            <article key={`stage-${activeInterest.name}`} className="feature-stage interest-swap-stage"><img src={activeInterestImage.src} alt={activeInterestImage.alt}/><div className="stage-copy"><small>本期兴趣方向 · {activeInterest.name}</small><h3><LineBreaks text={activeInterest.title}/></h3><p>{activeInterest.desc}</p><a href={CREATE_URL}>围绕{activeInterest.name}创作 <ButtonArrow dark/></a></div><div className="tennis-word">{activeInterest.name==="城市漫步"?"城市":activeInterest.name}</div><div id="chapter-2" className="official-benefits stage-benefits"><small>完成本期创作，有机会获得</small><b>官方流量激励　·　官号展示　·　案例推荐</b><span>优质作品将进入官方评选</span></div></article>
+            <article key={`stage-${activeInterest.name}`} className="feature-stage interest-swap-stage"><img src={activeInterestImage.src} alt={activeInterestImage.alt}/><div className="stage-copy"><small>本期兴趣方向 · {activeInterest.name}</small><h3><LineBreaks text={activeInterest.title}/></h3><p>{activeInterest.desc}</p><a className="responsive-button" href={CREATE_URL}><ResponsiveButtonLabel full={`围绕${activeInterest.name}创作`} short="创作"/> <ButtonArrow dark/></a></div><div id="chapter-2" className="official-benefits stage-benefits"><small>完成本期创作，有机会获得</small><b>官方流量激励　·　官号展示　·　案例推荐</b><span>优质作品将进入官方评选</span></div></article>
             <aside key={`signal-${activeInterest.name}`} className="signal-panel interest-swap-signal" style={{"--signal-base":activeInterest.panelBase,"--signal-a":activeInterest.panelA,"--signal-b":activeInterest.panelB,"--signal-c":activeInterest.panelC,"--signal-d":activeInterest.panelD,"--signal-phase":activeInterest.panelPhase} as CSSProperties}>
               <div className="signal-panel-head"><small>真实需求信号</small><h3>听见真实问题，<br/>找到可创作的回应</h3></div>
               <div className="voice-stack"><article className="voice-card user-voice"><span><img src={activeInterest.userAvatar} alt=""/></span><div><small>用户原声 · {activeInterest.userHandle}</small><blockquote>“<LineBreaks text={activeInterest.userQuote}/>”</blockquote></div></article><article className="voice-card creator-voice"><span><img src={activeInterest.creatorAvatar} alt=""/></span><div><small>创作者原声 · {activeInterest.creatorHandle}</small><blockquote>“<LineBreaks text={activeInterest.creatorQuote}/>”</blockquote></div></article></div>
@@ -562,12 +660,12 @@ export default function Home(){
 
         <section id="chapter-4" className="chapter chapter-support">
           <div className="chapter-head"><div><SoftBlurInGroup kicker="需要帮助时" title={"学习、发布、反馈，\n一站找到"} body="从学习入门到发布上线，再到社群反馈，按当前任务进入对应支持。"/></div></div>
-          <div className="support-stack content-rise" style={{"--content-rise-delay":"180ms"} as CSSProperties}><article><b>01</b><small>入门课程</small><h3>通过短课与示例，<br/>快速完成第一张兴趣卡。</h3><a href="#">查看兴趣卡课程 <ButtonArrow dark/></a><div className="support-shape play">▶</div></article><article><b>02</b><small>发布指南</small><h3>发布规范、上线检查与<br/>常见问题一次看清。</h3><a href="#">查看发布指南 <ButtonArrow dark/></a><div className="support-shape list">☷</div></article><article><b>03</b><small>社区问答与反馈</small><h3>加入飞书群，与官方和<br/>创作者直接交流。</h3><a href="#">进入创作者社群 <ButtonArrow dark/></a><div className="support-shape qr">QR</div></article></div>
+          <div className="support-stack content-rise" style={{"--content-rise-delay":"180ms"} as CSSProperties}><article><b>01</b><small>入门课程</small><h3>通过短课与示例，<br/>快速完成第一张兴趣卡。</h3><a className="responsive-button" href="#"><ResponsiveButtonLabel full="查看兴趣卡课程" short="课程"/> <ButtonArrow dark/></a><div className="support-shape play">▶</div></article><article><b>02</b><small>发布指南</small><h3>发布规范、上线检查与<br/>常见问题一次看清。</h3><a className="responsive-button" href="#"><ResponsiveButtonLabel full="查看发布指南" short="指南"/> <ButtonArrow dark/></a><div className="support-shape list">☷</div></article><article><b>03</b><small>社区问答与反馈</small><h3>加入飞书群，与官方和<br/>创作者直接交流。</h3><a className="responsive-button" href="#"><ResponsiveButtonLabel full="进入创作者社群" short="社群"/> <ButtonArrow dark/></a><div className="support-shape qr">QR</div></article></div>
         </section>
 
         <section id="chapter-5" className="chapter chapter-final">
           <Blaze className="final-blaze" style={{"--blaze-brightness":blazeTuning.brightness,"--blaze-saturation":blazeTuning.saturation} as CSSProperties} height={blazeTuning.height} distortion={blazeTuning.distortion} distortionScale={blazeTuning.distortionScale} speed={blazeTuning.speed} sparks={blazeTuning.sparks} sparkDensity={blazeTuning.sparkDensity} sparkSize={blazeTuning.sparkSize} layers={blazeTuning.layers} smoke={blazeTuning.smoke} glow={blazeTuning.glow} sparkColor={hexToLiquidColor(blazeTuning.sparkColor)} smokeColor={hexToLiquidColor(blazeTuning.smokeColor)}><div className="final-blaze-field"/></Blaze>
-          <div className="final-bg-word">IDEA</div><div className="final-copy"><SoftBlurInGroup kicker="准备好了吗？" title={"从一个想法开始，\n做出你的第一张兴趣卡"} body="进入抖音创作者中心，用一句话生成并发布你的兴趣卡。"/><div className="content-rise" style={{"--content-rise-delay":"240ms"} as CSSProperties}><a href={CREATE_URL}>开始创作 <ButtonArrow/></a><a href="#chapter-4">查看课程</a></div></div>
+          <div className="final-bg-word">IDEA</div><div className="final-copy"><SoftBlurInGroup kicker="准备好了吗？" title={"从一个想法开始，\n做出你的第一张兴趣卡"} body="进入抖音创作者中心，用一句话生成并发布你的兴趣卡。"/><div className="content-rise" style={{"--content-rise-delay":"240ms"} as CSSProperties}><a className="responsive-button" href={CREATE_URL}><ResponsiveButtonLabel full="开始创作" short="创作"/> <ButtonArrow/></a><a className="responsive-button" href="#chapter-4"><ResponsiveButtonLabel full="查看课程" short="课程"/></a></div></div>
           <div className="interest-card-showcase" aria-label="匀速旋转的三维抖音兴趣卡示例">
             <div className="interest-flip-card content-rise" style={{"--content-rise-delay":"320ms"} as CSSProperties}>
               <div className="interest-card-inner">

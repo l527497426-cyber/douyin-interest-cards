@@ -629,6 +629,9 @@
     overflow:visible!important;
     clip-path:inset(0 0 -128px 0);
   }
+  .cases-bend>.horizontal-track{
+    overflow:visible!important;
+  }
 }
 .case-media:after{display:none}
 .case-phone-stage{position:relative;z-index:1;width:100%;height:100%;display:grid;place-items:center;overflow:hidden;isolation:isolate}
@@ -691,3 +694,6 @@
 @media(prefers-reduced-motion:reduce){
   :where(.rail-create,.hero-actions a,.stage-copy a,.case-info a,.case-info button,.support-stack a,.final-copy a,.interest-strip button,.edition-header .console-link,.edition-header .login-link,.footer-socials a),.button-arrow{transition:none!important}
 }
+
+/* Keep the planned developer-value rail item visible without making it interactive. */
+.edition-rail li>.rail-disabled{display:flex;align-items:center;justify-content:space-between;font-family:"PingFang SC","Noto Sans SC",Arial,sans-serif;font-size:17px;font-weight:800;line-height:1.08;pointer-events:none;cursor:default}

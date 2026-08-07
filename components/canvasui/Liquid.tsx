@@ -368,10 +368,12 @@ export function createLiquid(
   );
   const videoSource = htmlInCanvas ? null : content.querySelector("video");
   const imageSource = htmlInCanvas || videoSource ? null : content.querySelector("img");
+  const canvasSource = htmlInCanvas || videoSource || imageSource ? null : content.querySelector("canvas");
   let videoReady = Boolean(videoSource && videoSource.readyState >= 2);
   let imageReady = Boolean(imageSource && imageSource.complete && imageSource.naturalWidth > 0);
+  let canvasReady = Boolean(canvasSource && canvasSource.width > 0 && canvasSource.height > 0);
 
-  let contentDirty = Boolean(videoSource || imageSource);
+  let contentDirty = Boolean(videoSource || imageSource || canvasSource);
   let wake = () => {};
 
   const markVideoDirty = () => {
@@ -396,6 +398,14 @@ export function createLiquid(
     imageSource.addEventListener("load", markImageDirty);
     imageSource.addEventListener("error", markImageDirty);
   }
+
+  const markCanvasDirty = () => {
+    canvasReady = Boolean(canvasSource && canvasSource.width > 0 && canvasSource.height > 0);
+    contentDirty = true;
+    wake();
+  };
+
+  if (canvasSource) canvasSource.addEventListener("liquidcontentchange", markCanvasDirty);
 
   if (htmlInCanvas) {
     paintable.onpaint = () => {
@@ -625,7 +635,7 @@ export function createLiquid(
 
   function uploadContent() {
     if (!contentDirty) return;
-    if (!htmlInCanvas && (!videoSource || videoSource.readyState < 2) && !imageReady) return;
+    if (!htmlInCanvas && (!videoSource || videoSource.readyState < 2) && !imageReady && !canvasReady) return;
     contentDirty = false;
     if (imageSource && imageReady && sourceCtx) {
       const cssWidth = Math.max(output.clientWidth, 1);
@@ -656,7 +666,7 @@ export function createLiquid(
         gl!.RGBA,
         gl!.RGBA,
         gl!.UNSIGNED_BYTE,
-        htmlInCanvas || imageSource ? source : videoSource!,
+        htmlInCanvas || imageSource ? source : canvasSource || videoSource!,
       );
       if (videoSource) videoReady = true;
       if (imageSource) imageReady = true;
@@ -847,7 +857,7 @@ export function createLiquid(
     gl!.uniform1f(displayProgram.uniforms.uIntensity, effectsActive ? config.intensity : 0);
     gl!.uniform1f(displayProgram.uniforms.uBlend, effectsActive ? config.blend : 0);
     gl!.uniform1f(displayProgram.uniforms.uRainbow, config.rainbow ? 1 : 0);
-    const hasContent = !config.overlayOnly && (htmlInCanvas || videoReady || imageReady);
+    const hasContent = !config.overlayOnly && (htmlInCanvas || videoReady || imageReady || canvasReady);
     let scaleX = 1;
     let scaleY = 1;
     if (videoReady && videoSource?.videoWidth && videoSource.videoHeight) {
@@ -1017,6 +1027,7 @@ export function createLiquid(
         imageSource.removeEventListener("load", markImageDirty);
         imageSource.removeEventListener("error", markImageDirty);
       }
+      if (canvasSource) canvasSource.removeEventListener("liquidcontentchange", markCanvasDirty);
       listenTarget.removeEventListener(
         "pointermove",
         onPointerMove as EventListener,

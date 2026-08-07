@@ -125,7 +125,7 @@ const interestFeatureImages:Partial<Record<(typeof interestDirections)[number]["
 const chapterLinks = [
   { label: "创作方向", href: "#chapter-1" },
   { label: "案例", href: "#chapter-3" },
-  { label: "开发者价值", href: "#chapter-2" },
+  { label: "开发者价值", href: null },
   { label: "创作支持", href: "#chapter-4" },
 ];
 const footerGroups = [
@@ -156,14 +156,14 @@ const hexToLiquidColor=(value:string):[number,number,number]=>{
   return [0,2,4].map(index=>parseInt(hex.slice(index,index+2),16)/255) as [number,number,number];
 };
 const cases = [
+  { tag: "兴趣人格", title: "测测你的\n春日逛展人格", desc: "根据审美偏好与逛展习惯，匹配你的春日艺术人格。", creator: "@今天看什么展 · 艺术创作者", image: "/assets/case-gallery-reference-v4.png", screen: "/assets/case-ui-gallery-banner-v2.png", cls: "orange", fallbackHue: 20 },
   { tag: "兴趣工具", title: "找到适合你的\n机械键盘", desc: "根据手感、声音与使用场景，找到更适合的轴体与配列。", creator: "@键盘研究室 · 数码创作者", image: "/assets/case-keyboard-centered-v3.png", screen: "/assets/case-ui-keyboard-banner-v2.png", cls: "sky", fallbackHue: 215 },
   { tag: "赛车知识", title: "测测你是哪种\nF1 车手", desc: "从驾驶风格与赛道偏好，生成你的赛车人格。", creator: "@赛道第十三弯 · 赛车创作者", image: "/assets/case-f1-forest-blue-gold-v6.png", screen: "/assets/case-ui-f1-banner-v2.png", cls: "pink", fallbackHue: 218 },
-  { tag: "兴趣人格", title: "测测你的\n春日逛展人格", desc: "根据审美偏好与逛展习惯，匹配你的春日艺术人格。", creator: "@今天看什么展 · 艺术创作者", image: "/assets/case-gallery-reference-v4.png", screen: "/assets/case-ui-gallery-banner-v2.png", cls: "orange", fallbackHue: 20 },
   { tag: "路线推荐", title: "生成你的\n周末城市漫游地图", desc: "从街区、咖啡与书店偏好，生成一条周末探索路线。", creator: "@城市散步指南 · 生活方式创作者", image: "/assets/case-city-reference-v4.png", screen: "/assets/case-ui-city-banner-v2.png", cls: "green", fallbackHue: 145 },
 ];
 
 function Rail({ active = 0 }: { active?: number }) {
-  return <aside className="edition-rail"><div className="rail-brand"><div className="rail-mark">DOUYIN<br /><i>Interest</i><br />Cards</div><span>抖音兴趣卡</span></div><ol>{chapterLinks.map((item,i)=><li className={i===active?"active":""} key={item.label}><a href={item.href}><span>{item.label}</span><b>{toRoman(i+1)}</b></a></li>)}</ol><a className="rail-create responsive-button" href={CREATE_URL}><ResponsiveButtonLabel full="开始创作" short="创作"/> <ButtonArrow/></a></aside>;
+  return <aside className="edition-rail"><div className="rail-brand"><div className="rail-mark">DOUYIN<br /><i>Interest</i><br />Cards</div><span>抖音兴趣卡</span></div><ol>{chapterLinks.map((item,i)=><li className={i===active?"active":""} key={item.label}>{item.href?<a href={item.href}><span>{item.label}</span><b>{toRoman(i+1)}</b></a>:<span className="rail-disabled" aria-disabled="true"><span>{item.label}</span><b>{toRoman(i+1)}</b></span>}</li>)}</ol><a className="rail-create responsive-button" href={CREATE_URL}><ResponsiveButtonLabel full="开始创作" short="创作"/> <ButtonArrow/></a></aside>;
 }
 function toRoman(n:number){return ["I","II","III","IV","V"][n-1]}
 
@@ -503,7 +503,7 @@ export default function Home(){
     const decoded=new Map<number,ImageBitmap>();
     const pending=new Map<number,Promise<ImageBitmap|null>>();
     const touch=(index:number,bitmap:ImageBitmap)=>{decoded.delete(index);decoded.set(index,bitmap);while(decoded.size>24){const oldest=decoded.entries().next().value as [number,ImageBitmap]|undefined;if(!oldest)break;decoded.delete(oldest[0]);oldest[1].close()}};
-    const draw=(bitmap:ImageBitmap)=>{const rect=canvas.getBoundingClientRect();if(rect.width<1||rect.height<1)return;const ratio=Math.min(window.devicePixelRatio||1,1.5);const width=Math.min(1600,Math.max(1,Math.round(rect.width*ratio)));const height=Math.max(1,Math.round(rect.height*ratio));if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height}const scale=Math.max(width/bitmap.width,height/bitmap.height);const drawWidth=bitmap.width*scale;const drawHeight=bitmap.height*scale;context.drawImage(bitmap,(width-drawWidth)/2,(height-drawHeight)/2,drawWidth,drawHeight)};
+    const draw=(bitmap:ImageBitmap)=>{const rect=canvas.getBoundingClientRect();if(rect.width<1||rect.height<1)return;const ratio=Math.min(window.devicePixelRatio||1,1.5,1600/rect.width);const width=Math.max(1,Math.round(rect.width*ratio));const height=Math.max(1,Math.round(rect.height*ratio));if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height}const scale=Math.max(width/bitmap.width,height/bitmap.height);const drawWidth=bitmap.width*scale;const drawHeight=bitmap.height*scale;context.drawImage(bitmap,(width-drawWidth)/2,(height-drawHeight)/2,drawWidth,drawHeight);canvas.dispatchEvent(new CustomEvent("liquidcontentchange",{bubbles:true}))};
     const load=(index:number)=>{const safe=Math.max(0,Math.min(HERO_FRAME_COUNT-1,index));const cached=decoded.get(safe);if(cached){touch(safe,cached);return Promise.resolve(cached)}const active=pending.get(safe);if(active)return active;const task=fetch(heroFrameSrc(safe),{cache:"force-cache"}).then(response=>{if(!response.ok)throw new Error(`Frame ${safe+1} failed`);return response.blob()}).then(blob=>createImageBitmap(blob)).then(bitmap=>{pending.delete(safe);if(disposed){bitmap.close();return null}touch(safe,bitmap);if(heroFrameTargetRef.current===safe)draw(bitmap);return bitmap}).catch(()=>{pending.delete(safe);return null});pending.set(safe,task);return task};
     requestHeroFrameRef.current=(index:number)=>{const safe=Math.max(0,Math.min(HERO_FRAME_COUNT-1,index));heroFrameTargetRef.current=safe;const cached=decoded.get(safe);if(cached){touch(safe,cached);draw(cached)};[safe,safe+1,safe-1,safe+2,safe-2].forEach(load)};
     requestHeroFrameRef.current(heroFrameTargetRef.current);
@@ -553,8 +553,8 @@ export default function Home(){
     return()=>{hero.removeEventListener("pointermove",onPointerMove);hero.removeEventListener("pointerleave",onPointerLeave);hero.style.removeProperty("--hero-shift-x");hero.style.removeProperty("--hero-shift-y");if(frame)cancelAnimationFrame(frame)};
   },[liquidEnabled]);
   useEffect(()=>{
-    const sections = ["chapter-1","chapter-2","chapter-3","chapter-4"];
-    const navIndex: Record<string,number> = {"chapter-1":0,"chapter-3":1,"chapter-2":2,"chapter-4":3};
+    const sections = ["chapter-1","chapter-3","chapter-4"];
+    const navIndex: Record<string,number> = {"chapter-1":0,"chapter-3":1,"chapter-4":3};
     let frame=0;
     const update=()=>{
       const readingLine=window.innerHeight*.38;

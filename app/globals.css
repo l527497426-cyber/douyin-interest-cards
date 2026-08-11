@@ -351,10 +351,15 @@
 .rail-create,.stage-copy a,.case-info a,.case-info button,.support-stack a,.final-copy a,.hero-primary-label{gap:8px}
 .hero-primary-label,.support-stack a{display:flex;align-items:center;justify-content:center}
 
-/* Interest tabs autoplay only while this chapter is visible; the active underline is its 8s timer. */
-.interest-strip button{position:relative;overflow:visible}
-.interest-strip button.active:after{content:"";position:absolute;left:14px;right:14px;bottom:-10px;height:2px;border-radius:2px;background:rgba(36,107,253,.18)}
-.interest-progress{position:absolute;z-index:2;left:14px;right:14px;bottom:-10px;height:2px;border-radius:2px;background:#246bfd;transform:scaleX(0);transform-origin:left center;animation:interest-tab-progress 8s linear forwards;animation-play-state:paused}
+/* A complete editorial index: all directions stay visible and timing lives inside the active tab. */
+.interest-strip{position:relative;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:0;width:70%;margin-left:0;margin-right:auto;border-bottom:0;isolation:isolate}
+.interest-strip:before{display:none}
+.interest-strip button{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;min-width:0;height:52px;padding:0 8px;overflow:hidden;border:0;border-radius:8px;background:transparent;color:rgba(20,24,30,.58);font-size:15px;font-weight:650;line-height:1;letter-spacing:.01em;text-align:center;white-space:nowrap;box-shadow:none}
+.interest-strip button:after{display:none}
+.interest-strip button.active{border-color:transparent;background:linear-gradient(180deg,transparent 30%,rgba(36,107,253,.055));color:#174fc9}
+.interest-strip button.active:before{content:"";position:absolute;z-index:3;inset:0;pointer-events:none;background:linear-gradient(90deg,#fff 0,rgba(255,255,255,.92) 7%,rgba(255,255,255,0) 28%,rgba(255,255,255,0) 72%,rgba(255,255,255,.92) 93%,#fff 100%)}
+.interest-strip button.active:after{left:0;right:0;background:rgba(36,107,253,.18)}
+.interest-progress{position:absolute;z-index:2;left:0;right:0;bottom:0;height:2px;background:#246bfd;transform:scaleX(0);transform-origin:left center;animation:interest-tab-progress 8s linear forwards;animation-play-state:paused}
 .interest-progress.playing{animation-play-state:running}
 @keyframes interest-tab-progress{to{transform:scaleX(1)}}
 .tennis-word{color:rgba(255,255,255,.13);text-shadow:none}
@@ -408,8 +413,8 @@
 
 /* Treat the scene and the signal panel as two independent large cards. */
 .direction-module{gap:20px;border:0;border-radius:0;background:transparent;overflow:visible;box-shadow:none}
-.direction-module .feature-stage{border:1px solid rgba(24,31,45,.1);border-radius:var(--radius-card);overflow:hidden;box-shadow:0 20px 52px rgba(31,43,67,.1)}
-.direction-module .signal-panel{border:1px solid rgba(36,107,253,.1);border-radius:var(--radius-card);background:var(--signal-base,#f5f8f2);box-shadow:0 20px 52px rgba(36,107,253,.09)}
+.direction-module .feature-stage{border:0;border-radius:var(--radius-card);overflow:hidden;box-shadow:0 20px 52px rgba(31,43,67,.1)}
+.direction-module .signal-panel{border:0;border-radius:var(--radius-card);background:var(--signal-base,#f5f8f2);box-shadow:0 20px 52px rgba(36,107,253,.09)}
 .direction-module .signal-panel-head{position:relative;z-index:2;isolation:isolate}
 .direction-module .signal-panel-head:before{content:"";position:absolute;z-index:-1;top:-36px;left:calc(-1 * var(--signal-pad-x));right:calc(-1 * var(--signal-pad-x));height:clamp(260px,36svh,330px);background:linear-gradient(180deg,rgba(255,255,255,.96) 0%,rgba(255,255,255,.88) 30%,rgba(255,255,255,.58) 58%,rgba(255,255,255,.16) 82%,transparent 100%);pointer-events:none}
 .direction-module .signal-panel:before{filter:blur(14px) saturate(1.82);opacity:1}
@@ -659,8 +664,8 @@
   :where(.rail-create,.hero-actions a,.stage-copy a,.case-info a,.case-info button,.final-copy a,.edition-header .login-link):hover{transform:translate3d(0,-2px,0);box-shadow:none!important;filter:brightness(1.035)}
   :where(.rail-create,.hero-actions a,.stage-copy a,.case-info a,.case-info button,.support-stack a,.final-copy a):hover .button-arrow{transform:translate3d(3px,0,0)}
   :where(.rail-create,.hero-actions a,.stage-copy a,.case-info a,.case-info button,.final-copy a,.edition-header .login-link):active{transform:translate3d(0,0,0) scale(.98);box-shadow:none!important}
-  .interest-strip button:hover{transform:translate3d(0,-2px,0);border-color:#111315;background:rgba(17,19,21,.06);box-shadow:none!important}
-  .interest-strip button.active:hover{background:#25282a;color:#fff}
+  .interest-strip button:hover{transform:none;border-color:transparent;border-radius:8px;background:rgba(17,19,21,.055);color:#111315;box-shadow:none!important}
+  .interest-strip button.active:hover{background:linear-gradient(180deg,rgba(36,107,253,.035),rgba(36,107,253,.09));color:#174fc9}
   .edition-header .console-link:hover,.edition-header nav a:hover{opacity:.62}
 }
 .step-2 .hero-actions,.hero-scroll-scrubbed .hero-actions{overflow:visible}
@@ -728,45 +733,29 @@
   .horizontal-card .case-info{padding:22px 22px 24px!important}
 }
 
-/* Mobile interest directions use a single-line, swipeable tab row instead of vertical labels. */
+/* Smaller screens keep the full index visible instead of hiding directions in a swipe row. */
 @media(max-width:900px){
   .interest-strip{
-    display:flex;
-    flex-wrap:nowrap;
-    width:auto;
-    gap:8px;
-    margin:clamp(36px,6svh,48px) -24px 28px;
-    padding:0 24px 14px;
-    overflow-x:auto;
-    overflow-y:hidden;
-    overscroll-behavior-x:contain;
-    -webkit-overflow-scrolling:touch;
-    scroll-snap-type:x proximity;
-    scroll-padding-inline:24px;
-    scrollbar-width:none;
-    touch-action:pan-x pan-y;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    width:100%;
+    gap:0;
+    margin:clamp(36px,6svh,48px) 0 28px;
+    padding:0;
+    overflow:visible;
+    border-bottom:0;
   }
-  .interest-strip::-webkit-scrollbar{display:none}
   .interest-strip button{
-    flex:0 0 auto;
-    min-width:max-content;
-    height:44px;
-    padding:0 17px;
+    min-width:0;
+    height:46px;
+    padding:0 8px;
+    border-bottom:0;
     white-space:nowrap;
     line-height:1;
-    scroll-snap-align:center;
   }
 }
 @media(max-width:560px){
-  .interest-strip{
-    margin-left:-18px;
-    margin-right:-18px;
-    padding-left:18px;
-    padding-right:18px;
-    scroll-padding-inline:18px;
-  }
-  .interest-strip button{height:42px;padding:0 16px;font-size:15px}
-  .interest-strip button.active:after,.interest-progress{left:16px;right:16px;bottom:-7px}
+  .interest-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .interest-strip button{height:42px;padding:0 8px;font-size:14px}
 }
 
 /* Keep the two mobile direction cards together within roughly one viewport. */

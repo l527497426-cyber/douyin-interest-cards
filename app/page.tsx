@@ -113,14 +113,14 @@ const interestDirections = [
 ] as const;
 const interests = interestDirections.map(item=>item.name);
 const interestFeatureImages:Partial<Record<(typeof interestDirections)[number]["name"],{src:string;alt:string}>>={
-  "网球":{src:"/assets/tennis-action-panorama-v3.png",alt:"东亚网球运动员完成双手反拍"},
-  "电影":{src:"/assets/movie-cinema-discussion-v1.png",alt:"影院中共同观影并分享感受的年轻观众"},
-  "游戏":{src:"/assets/interest-game-cinematic-v1.png",alt:"专注投入游戏世界的年轻玩家"},
-  "美食":{src:"/assets/interest-food-cinematic-v1.png",alt:"朋友在餐桌前分享不同风味的美食"},
-  "旅行":{src:"/assets/interest-travel-cinematic-v1.png",alt:"旅人在清晨的山海车站准备出发"},
-  "宠物":{src:"/assets/interest-pet-cinematic-v1.png",alt:"年轻人观察猫咪探索互动玩具"},
-  "阅读":{src:"/assets/interest-reading-cinematic-v1.png",alt:"雨夜书店里沉浸阅读的年轻人"},
-  "城市漫步":{src:"/assets/interest-citywalk-cinematic-v1.png",alt:"雨后城市街区中发现新路线的漫步者"},
+  "网球":{src:"/assets/tennis-action-panorama-v17.png",alt:"从巨型网球罐中滚出的网球与追球运动员"},
+  "电影":{src:"/assets/interest-movie-cinematic-v3.png",alt:"沿可步行投影光带走向露天银幕的观众"},
+  "游戏":{src:"/assets/interest-game-cinematic-v2.png",alt:"踏上巨型方向键平台的玩家"},
+  "美食":{src:"/assets/interest-food-cinematic-v2.png",alt:"在巨型面碗旁探索风味的食客"},
+  "旅行":{src:"/assets/interest-travel-cinematic-v2.png",alt:"沿行李带路线前往海岸车站的旅行者"},
+  "宠物":{src:"/assets/interest-pet-cinematic-v2.png",alt:"在猫隧道旁和橘猫互动的主人"},
+  "阅读":{src:"/assets/interest-reading-cinematic-v2.png",alt:"在巨书入口旁安静阅读的读者"},
+  "城市漫步":{src:"/assets/interest-citywalk-cinematic-v2.png",alt:"沿实体路线漫游街区的城市观察者"},
 };
 const chapterLinks = [
   { label: "创作方向", href: "#chapter-1" },

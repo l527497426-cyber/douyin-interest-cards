@@ -20,11 +20,11 @@ const interestDirections = [
     desc: "从新手入门、装备选择到球场体验，真实问题就是可以被回应的新玩法。",
     userAvatar: "/assets/voice-avatar-01.jpg",
     userHandle: "@小林第一次打网球",
-    userQuote: "第一次买球拍，\n我只想知道哪支真正适合我。",
+    userQuote: "第一次买球拍，\n哪支球拍更适合我？",
     creatorAvatar: "/assets/voice-avatar-08.png",
     creatorHandle: "@网球拍研究所",
     creatorQuote: "大家问得最多的是：\n这支球拍适不适合我？",
-    panelBase: "#f5f8f2", panelA: "rgba(171,245,88,.34)", panelB: "rgba(109,183,255,.28)", panelC: "rgba(255,224,114,.24)", panelD: "rgba(121,221,177,.22)", panelPhase: "-1.4s",
+    panelBase: "#ffffff", panelA: "#2475e8", panelB: "transparent", panelC: "transparent", panelD: "transparent", panelBorder: "rgba(3,12,32,.04)", panelPhase: "-1.4s",
   },
   {
     name: "电影",
@@ -32,11 +32,11 @@ const interestDirections = [
     desc: "从片单推荐、角色测试到结局解读，让每一种观影偏好都有可互动的表达。",
     userAvatar: "/assets/voice-avatar-05.jpg",
     userHandle: "@今晚看哪部",
-    userQuote: "想找一部适合现在心情的电影，\n不想再刷半小时片单。",
+    userQuote: "想找部应景的电影，\n不想再刷半小时片单。",
     creatorAvatar: "/assets/voice-avatar-02.jpg",
     creatorHandle: "@银幕外放映室",
-    creatorQuote: "观众真正想知道的是：\n这部电影为什么适合现在的我？",
-    panelBase: "#f7f3fa", panelA: "rgba(129,92,246,.25)", panelB: "rgba(255,190,96,.27)", panelC: "rgba(241,112,152,.19)", panelD: "rgba(89,118,208,.2)", panelPhase: "-5.2s",
+    creatorQuote: "观众真正想知道的是：\n它适不适合现在的我？",
+    panelBase: "#ffffff", panelA: "#28bfae", panelB: "transparent", panelC: "transparent", panelD: "transparent", panelBorder: "rgba(1,27,24,.04)", panelPhase: "-5.2s",
   },
   {
     name: "游戏",
@@ -44,11 +44,11 @@ const interestDirections = [
     desc: "从角色选择、阵容搭配到剧情挑战，把攻略之外的乐趣做成可体验的内容。",
     userAvatar: "/assets/voice-avatar-09.png",
     userHandle: "@新手今晚开局",
-    userQuote: "刚开始玩，\n我该选哪个角色才不容易劝退？",
+    userQuote: "刚开始玩，\n选谁才不容易劝退？",
     creatorAvatar: "/assets/voice-avatar-03.jpg",
     creatorHandle: "@存档点攻略组",
-    creatorQuote: "比起标准答案，\n大家更想找到适合自己的打法。",
-    panelBase: "#f2f7ff", panelA: "rgba(62,211,236,.3)", panelB: "rgba(116,88,255,.27)", panelC: "rgba(255,91,174,.2)", panelD: "rgba(188,238,64,.18)", panelPhase: "-8.6s",
+    creatorQuote: "比起标准答案，\n更想玩出自己的风格。",
+    panelBase: "#ffffff", panelA: "#416fe3", panelB: "transparent", panelC: "transparent", panelD: "transparent", panelBorder: "rgba(4,10,32,.04)", panelPhase: "-8.6s",
   },
   {
     name: "美食",
@@ -56,11 +56,11 @@ const interestDirections = [
     desc: "从口味测试、菜单搭配到城市探店，让真实饮食偏好生成更具体的推荐。",
     userAvatar: "/assets/voice-avatar-04.jpg",
     userHandle: "@晚饭还没想好",
-    userQuote: "想吃点不一样的，\n但又说不出自己到底想吃什么。",
+    userQuote: "想吃点不一样的，\n但又说不清想吃什么。",
     creatorAvatar: "/assets/voice-avatar-07.jpg",
     creatorHandle: "@一口风味研究所",
-    creatorQuote: "一道推荐真正有用，\n要先听懂用户今天的胃口。",
-    panelBase: "#fff7f0", panelA: "rgba(255,151,65,.3)", panelB: "rgba(255,96,103,.2)", panelC: "rgba(255,216,77,.25)", panelD: "rgba(112,212,163,.18)", panelPhase: "-3.1s",
+    creatorQuote: "一道推荐真正有用，\n要先听懂今天的胃口。",
+    panelBase: "#ffffff", panelA: "#ff7a1a", panelB: "transparent", panelC: "transparent", panelD: "transparent", panelBorder: "rgba(35,12,0,.04)", panelPhase: "-3.1s",
   },
   {
     name: "旅行",
@@ -68,11 +68,11 @@ const interestDirections = [
     desc: "从目的地选择、行程节奏到同行偏好，把攻略变成可参与的个性化规划。",
     userAvatar: "/assets/voice-avatar-06.jpg",
     userHandle: "@假期准备出发",
-    userQuote: "只有三天时间，\n怎么安排才不会一直赶路？",
+    userQuote: "只有三天时间，\n怎么安排才不赶路？",
     creatorAvatar: "/assets/voice-avatar-09.png",
     creatorHandle: "@慢一点旅行",
-    creatorQuote: "好路线不是塞满景点，\n而是找到适合你的旅行节奏。",
-    panelBase: "#f1faf8", panelA: "rgba(65,199,176,.28)", panelB: "rgba(95,181,242,.28)", panelC: "rgba(241,204,133,.25)", panelD: "rgba(255,135,107,.15)", panelPhase: "-11.8s",
+    creatorQuote: "好路线不是塞满景点，\n而是找到自己的节奏。",
+    panelBase: "#ffffff", panelA: "#258fc5", panelB: "transparent", panelC: "transparent", panelD: "transparent", panelBorder: "rgba(0,20,31,.04)", panelPhase: "-11.8s",
   },
   {
     name: "宠物",
@@ -80,11 +80,11 @@ const interestDirections = [
     desc: "从行为观察、用品选择到日常陪伴，让每一次困惑都得到更贴近真实场景的回应。",
     userAvatar: "/assets/voice-avatar-02.jpg",
     userHandle: "@第一次养小猫",
-    userQuote: "它最近总在半夜叫，\n是在撒娇还是哪里不舒服？",
+    userQuote: "它最近总在半夜叫，\n是在撒娇还是不舒服？",
     creatorAvatar: "/assets/voice-avatar-05.jpg",
     creatorHandle: "@毛孩子观察局",
-    creatorQuote: "先看懂行为发生的场景，\n才能给出真正有用的建议。",
-    panelBase: "#fff7f6", panelA: "rgba(255,148,174,.29)", panelB: "rgba(255,180,111,.25)", panelC: "rgba(112,213,176,.18)", panelD: "rgba(172,139,241,.2)", panelPhase: "-6.7s",
+    creatorQuote: "先看懂行为的场景，\n才能给出有用的建议。",
+    panelBase: "#ffffff", panelA: "#70b56a", panelB: "transparent", panelC: "transparent", panelD: "transparent", panelBorder: "rgba(8,27,7,.04)", panelPhase: "-6.7s",
   },
   {
     name: "阅读",
@@ -92,11 +92,11 @@ const interestDirections = [
     desc: "从阅读偏好、主题探索到书单生成，让选书不再只看榜单和评分。",
     userAvatar: "/assets/voice-avatar-07.jpg",
     userHandle: "@书架还缺一本",
-    userQuote: "最近想重新开始阅读，\n哪本书比较容易让我读进去？",
+    userQuote: "想重新开始阅读，\n哪本书更容易读进去？",
     creatorAvatar: "/assets/voice-avatar-01.jpg",
     creatorHandle: "@翻页计划",
-    creatorQuote: "推荐一本书之前，\n要先知道你此刻想遇见什么。",
-    panelBase: "#f6f4ef", panelA: "rgba(189,154,109,.22)", panelB: "rgba(91,113,190,.2)", panelC: "rgba(137,177,128,.24)", panelD: "rgba(232,186,91,.19)", panelPhase: "-9.4s",
+    creatorQuote: "推荐一本书之前，\n先问此刻想遇见什么。",
+    panelBase: "#ffffff", panelA: "#238f73", panelB: "transparent", panelC: "transparent", panelD: "transparent", panelBorder: "rgba(0,25,18,.04)", panelPhase: "-9.4s",
   },
   {
     name: "城市漫步",
@@ -104,23 +104,23 @@ const interestDirections = [
     desc: "从街区、咖啡、建筑到书店偏好，生成一段有主题、有发现的周末漫游。",
     userAvatar: "/assets/voice-avatar-03.jpg",
     userHandle: "@周末想出去走走",
-    userQuote: "不想去热门景点，\n有没有适合慢慢走的路线？",
+    userQuote: "不想去热门景点，\n有没有适合慢走的路线？",
     creatorAvatar: "/assets/voice-avatar-08.png",
     creatorHandle: "@城市散步指南",
-    creatorQuote: "好的漫游路线，\n会让日常街道重新变得有意思。",
-    panelBase: "#f3f7f8", panelA: "rgba(93,143,180,.25)", panelB: "rgba(113,165,125,.22)", panelC: "rgba(238,138,91,.18)", panelD: "rgba(73,194,205,.16)", panelPhase: "-13.2s",
+    creatorQuote: "好的漫游路线，\n能让熟悉街道重新有趣。",
+    panelBase: "#ffffff", panelA: "#315fc4", panelB: "transparent", panelC: "transparent", panelD: "transparent", panelBorder: "rgba(4,10,30,.04)", panelPhase: "-13.2s",
   },
 ] as const;
 const interests = interestDirections.map(item=>item.name);
 const interestFeatureImages:Partial<Record<(typeof interestDirections)[number]["name"],{src:string;alt:string}>>={
-  "网球":{src:"/assets/tennis-action-panorama-v17.png",alt:"从巨型网球罐中滚出的网球与追球运动员"},
-  "电影":{src:"/assets/interest-movie-cinematic-v3.png",alt:"沿可步行投影光带走向露天银幕的观众"},
-  "游戏":{src:"/assets/interest-game-cinematic-v2.png",alt:"踏上巨型方向键平台的玩家"},
-  "美食":{src:"/assets/interest-food-cinematic-v2.png",alt:"在巨型面碗旁探索风味的食客"},
-  "旅行":{src:"/assets/interest-travel-cinematic-v2.png",alt:"沿行李带路线前往海岸车站的旅行者"},
-  "宠物":{src:"/assets/interest-pet-cinematic-v2.png",alt:"在猫隧道旁和橘猫互动的主人"},
-  "阅读":{src:"/assets/interest-reading-cinematic-v2.png",alt:"在巨书入口旁安静阅读的读者"},
-  "城市漫步":{src:"/assets/interest-citywalk-cinematic-v2.png",alt:"沿实体路线漫游街区的城市观察者"},
+  "网球":{src:"/assets/tennis-action-panorama-v17.webp",alt:"从巨型网球罐中滚出的网球与追球运动员"},
+  "电影":{src:"/assets/interest-movie-cinematic-v3.webp",alt:"沿可步行投影光带走向露天银幕的观众"},
+  "游戏":{src:"/assets/interest-game-cinematic-v2.webp",alt:"踏上巨型方向键平台的玩家"},
+  "美食":{src:"/assets/interest-food-cinematic-v2.webp",alt:"在巨型面碗旁探索风味的食客"},
+  "旅行":{src:"/assets/interest-travel-cinematic-v2.webp",alt:"沿行李带路线前往海岸车站的旅行者"},
+  "宠物":{src:"/assets/interest-pet-cinematic-v2.webp",alt:"在猫隧道旁和橘猫互动的主人"},
+  "阅读":{src:"/assets/interest-reading-cinematic-v2.webp",alt:"在巨书入口旁安静阅读的读者"},
+  "城市漫步":{src:"/assets/interest-citywalk-cinematic-v2.webp",alt:"沿实体路线漫游街区的城市观察者"},
 };
 const chapterLinks = [
   { label: "创作方向", href: "#chapter-1" },
@@ -468,6 +468,26 @@ export default function Home(){
     return()=>observer.disconnect();
   },[]);
   useEffect(()=>{
+    const section=interestSectionRef.current;
+    if(!section)return;
+    const sources=Object.values(interestFeatureImages).map(image=>image.src).slice(1);
+    let timer=0,index=0,disposed=false;
+    const preloadNext=()=>{
+      if(disposed||index>=sources.length)return;
+      const image=new Image();
+      image.decoding="async";
+      image.onload=image.onerror=()=>{if(!disposed)timer=window.setTimeout(preloadNext,140)};
+      image.src=sources[index++];
+    };
+    const observer=new IntersectionObserver(([entry])=>{
+      if(!entry.isIntersecting)return;
+      observer.disconnect();
+      preloadNext();
+    },{rootMargin:"100% 0px",threshold:0});
+    observer.observe(section);
+    return()=>{disposed=true;window.clearTimeout(timer);observer.disconnect()};
+  },[]);
+  useEffect(()=>{
     if(!interestAutoplay)return;
     const timer=window.setTimeout(()=>{
       setInterest(current=>(current+1)%interestDirections.length);
@@ -700,8 +720,8 @@ export default function Home(){
           <div className="chapter-head"><div><SoftBlurInGroup kicker="本期流量悬赏" title={"这些兴趣，\n正在等待新玩法"} body="每期围绕一个真实兴趣方向开放创作，从用户问题中找到值得回应的新玩法。"/></div></div>
           <div ref={interestStripRef} className="interest-strip content-rise" style={{"--content-rise-delay":"120ms"} as CSSProperties}>{interests.map((x,i)=><button type="button" aria-pressed={i===interest} data-interest-active={i===interest?"true":undefined} className={i===interest?"active":""} onClick={()=>selectInterest(i)} key={x}>{x}{i===interest&&<span key={`${interest}-${interestCycle}`} className={`interest-progress${interestAutoplay?" playing":""}`} aria-hidden="true"/>}</button>)}</div>
           <div className="direction-module content-rise" style={{"--content-rise-delay":"220ms"} as CSSProperties}>
-            <article key={`stage-${activeInterest.name}`} className="feature-stage interest-swap-stage"><img src={activeInterestImage.src} alt={activeInterestImage.alt}/><div className="stage-copy"><small>本期兴趣方向 · {activeInterest.name}</small><h3><LineBreaks text={activeInterest.title}/></h3><p>{activeInterest.desc}</p><a className="responsive-button" href={CREATE_URL}><ResponsiveButtonLabel full={`围绕${activeInterest.name}创作`} short="创作"/> <ButtonArrow dark/></a></div><div id="chapter-2" className="official-benefits stage-benefits"><small>完成本期创作，有机会获得</small><b>官方流量激励　·　官号展示　·　案例推荐</b><span>优质作品将进入官方评选</span></div></article>
-            <aside key={`signal-${activeInterest.name}`} className="signal-panel interest-swap-signal" style={{"--signal-base":activeInterest.panelBase,"--signal-a":activeInterest.panelA,"--signal-b":activeInterest.panelB,"--signal-c":activeInterest.panelC,"--signal-d":activeInterest.panelD,"--signal-phase":activeInterest.panelPhase} as CSSProperties}>
+            <article key={`stage-${activeInterest.name}`} className="feature-stage interest-swap-stage"><img src={activeInterestImage.src} alt={activeInterestImage.alt} decoding="async"/><div className="stage-copy"><small>本期兴趣方向 · {activeInterest.name}</small><h3><LineBreaks text={activeInterest.title}/></h3><p>{activeInterest.desc}</p><a className="responsive-button" href={CREATE_URL}><ResponsiveButtonLabel full={`围绕${activeInterest.name}创作`} short="创作"/> <ButtonArrow dark/></a></div><div id="chapter-2" className="official-benefits stage-benefits"><small>完成本期创作，有机会获得</small><b>官方流量激励　·　官号展示　·　案例推荐</b><span>优质作品将进入官方评选</span></div></article>
+            <aside key={`signal-${activeInterest.name}`} className="signal-panel interest-swap-signal" style={{"--signal-base":activeInterest.panelBase,"--signal-a":activeInterest.panelA,"--signal-b":activeInterest.panelB,"--signal-c":activeInterest.panelC,"--signal-d":activeInterest.panelD,"--signal-border":activeInterest.panelBorder,"--signal-phase":activeInterest.panelPhase} as CSSProperties}>
               <div className="signal-panel-head"><small>真实需求信号</small><h3>听见真实问题，<br/>找到可创作的回应</h3></div>
               <div className="voice-stack"><article className="voice-card user-voice"><span><img src={activeInterest.userAvatar} alt=""/></span><div><small>用户原声 · {activeInterest.userHandle}</small><blockquote>“<LineBreaks text={activeInterest.userQuote}/>”</blockquote></div></article><article className="voice-card creator-voice"><span><img src={activeInterest.creatorAvatar} alt=""/></span><div><small>创作者原声 · {activeInterest.creatorHandle}</small><blockquote>“<LineBreaks text={activeInterest.creatorQuote}/>”</blockquote></div></article></div>
             </aside>

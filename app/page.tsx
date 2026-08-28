@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Blaze from "../components/canvasui/Blaze";
 import Liquid, { type LiquidOptions } from "../components/canvasui/Liquid";
 
@@ -151,9 +151,6 @@ type BlazeTuning={height:number;distortion:number;distortionScale:number;speed:n
 const DEFAULT_BLAZE_TUNING:BlazeTuning={height:.97,distortion:.45,distortionScale:1.09,speed:.66,sparks:.58,sparkDensity:2.33,sparkSize:.82,layers:6,smoke:1.06,glow:2.15,brightness:1.46,saturation:1.28,sparkColor:"#1fb8ff",smokeColor:"#3860ff"};
 type HeroSparkTuning={enabled:boolean;bottomDensity:number;topDensity:number;layers:number;size:number;speed:number;opacity:number;fadeHeight:number};
 const DEFAULT_HERO_SPARK_TUNING:HeroSparkTuning={enabled:true,bottomDensity:4,topDensity:2,layers:7,size:1.1,speed:1,opacity:2.1,fadeHeight:84};
-const SHOW_LIQUID_TUNER=false;
-const SHOW_BLAZE_TUNER=false;
-const SHOW_SPARK_TUNER=false;
 const HERO_SPARK_LAYER_MOTION=[
   {startX:-5,startY:16,endX:7,duration:13,delay:0,scale:.72},
   {startX:7,startY:11,endX:-8,duration:17,delay:-7,scale:.64},
@@ -169,10 +166,10 @@ const hexToLiquidColor=(value:string):[number,number,number]=>{
   return [0,2,4].map(index=>parseInt(hex.slice(index,index+2),16)/255) as [number,number,number];
 };
 const cases = [
-  { tag: "兴趣人格", title: "测测你的\n春日逛展人格", desc: "根据审美偏好与逛展习惯，匹配你的春日艺术人格。", creator: "@今天看什么展 · 艺术创作者", image: "/assets/case-gallery-reference-v4.png", screen: "/assets/case-ui-gallery-banner-v2.png", cls: "orange", fallbackHue: 20 },
-  { tag: "兴趣工具", title: "找到适合你的\n机械键盘", desc: "根据手感、声音与使用场景，找到更适合的轴体与配列。", creator: "@键盘研究室 · 数码创作者", image: "/assets/case-keyboard-centered-v3.png", screen: "/assets/case-ui-keyboard-banner-v4.png", cls: "sky", fallbackHue: 215 },
-  { tag: "赛车知识", title: "测测你是哪种\nF1 车手", desc: "从驾驶风格与赛道偏好，生成你的赛车人格。", creator: "@赛道第十三弯 · 赛车创作者", image: "/assets/case-f1-forest-blue-gold-v6.png", screen: "/assets/case-ui-f1-banner-v4.png", cls: "pink", fallbackHue: 302 },
-  { tag: "路线推荐", title: "生成你的\n周末城市漫游地图", desc: "从街区、咖啡与书店偏好，生成一条周末探索路线。", creator: "@城市散步指南 · 生活方式创作者", image: "/assets/case-city-reference-v4.png", screen: "/assets/case-ui-city-banner-v4.png", cls: "green", fallbackHue: 168 },
+  { tag: "兴趣人格", title: "测测你的\n春日逛展人格", desc: "根据审美偏好与逛展习惯，匹配你的春日艺术人格。", creator: "@今天看什么展 · 艺术创作者", image: "/assets/case-gallery-reference-v4.png", screen: "/assets/case-ui-gallery-banner-v7.png", cls: "orange", fallbackHue: 20 },
+  { tag: "兴趣工具", title: "找到适合你的\n机械键盘", desc: "根据手感、声音与使用场景，找到更适合的轴体与配列。", creator: "@键盘研究室 · 数码创作者", image: "/assets/case-keyboard-centered-v3.png", screen: "/assets/case-ui-keyboard-banner-v5.png", cls: "sky", fallbackHue: 215 },
+  { tag: "赛车知识", title: "测测你是哪种\nF1 车手", desc: "从驾驶风格与赛道偏好，生成你的赛车人格。", creator: "@赛道第十三弯 · 赛车创作者", image: "/assets/case-f1-forest-blue-gold-v6.png", screen: "/assets/case-ui-f1-banner-v5.png", cls: "pink", fallbackHue: 302 },
+  { tag: "路线推荐", title: "生成你的\n周末城市漫游地图", desc: "从街区、咖啡与书店偏好，生成一条周末探索路线。", creator: "@城市散步指南 · 生活方式创作者", image: "/assets/case-city-reference-v4.png", screen: "/assets/case-ui-city-banner-v5.png", cls: "green", fallbackHue: 168 },
 ];
 
 function Rail({ active = 0 }: { active?: number }) {
@@ -202,7 +199,7 @@ function SoftBlurInGroup({kicker,title,body}:{kicker:string;title:string;body:st
   useEffect(()=>{
     const title=titleRef.current;
     if(!title)return;
-    if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){setVisible(true);return}
+    if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){const timer=window.setTimeout(()=>setVisible(true),0);return()=>window.clearTimeout(timer)}
     const observer=new IntersectionObserver(([entry])=>{
       if(!entry.isIntersecting)return;
       setVisible(true);
@@ -228,18 +225,11 @@ function ResponsiveButtonLabel({full,short}:{full:string;short:string}){
   return <span className="responsive-button-label"><span className="button-label-full">{full}</span><span className="button-label-short">{short}</span></span>;
 }
 
-function LiquidRange({label,value,min,max,step,onChange}: {label:string;value:number;min:number;max:number;step:number;onChange:(value:number)=>void}){
-  return <label className="liquid-range"><span>{label}<b>{value.toFixed(Number.isInteger(step)?0:step<.01?3:step<.1?2:1)}</b></span><input type="range" min={min} max={max} step={step} value={value} onChange={event=>onChange(Number(event.target.value))}/></label>;
-}
-
 function PortalTransition({progress}:{progress:number}){
   const canvasRef=useRef<HTMLCanvasElement>(null);
   const progressRef=useRef(progress);
   const frameRef=useRef(0);
-  const drawRef=useRef<()=>void>(()=>{});
-  progressRef.current=progress;
-
-  drawRef.current=()=>{
+  const draw=useCallback(()=>{
     const canvas=canvasRef.current;if(!canvas)return;
     const width=canvas.clientWidth,height=canvas.clientHeight;
     if(!width||!height)return;
@@ -272,10 +262,10 @@ function PortalTransition({progress}:{progress:number}){
       ctx.fillStyle=`rgba(255,255,255,${alpha})`;ctx.fill();
     }
     ctx.restore();
-  };
+  },[]);
 
-  useEffect(()=>{if(!frameRef.current)frameRef.current=requestAnimationFrame(()=>{frameRef.current=0;drawRef.current()})},[progress]);
-  useEffect(()=>{const onResize=()=>{if(!frameRef.current)frameRef.current=requestAnimationFrame(()=>{frameRef.current=0;drawRef.current()})};window.addEventListener("resize",onResize,{passive:true});onResize();return()=>{window.removeEventListener("resize",onResize);if(frameRef.current)cancelAnimationFrame(frameRef.current)}},[]);
+  useEffect(()=>{progressRef.current=progress;if(!frameRef.current)frameRef.current=requestAnimationFrame(()=>{frameRef.current=0;draw()})},[draw,progress]);
+  useEffect(()=>{const onResize=()=>{if(!frameRef.current)frameRef.current=requestAnimationFrame(()=>{frameRef.current=0;draw()})};window.addEventListener("resize",onResize,{passive:true});onResize();return()=>{window.removeEventListener("resize",onResize);if(frameRef.current)cancelAnimationFrame(frameRef.current)}},[draw]);
   return <canvas ref={canvasRef} className="hero-portal-edge" aria-hidden="true"/>;
 }
 
@@ -303,6 +293,8 @@ const paletteStyle=({hue,secondaryHue,saturation}:CasePalette)=>{
     "--case-info-base":`hsl(${hue.toFixed(1)} ${sat}% 87%)`,
     "--case-info-soft":`hsl(${secondaryHue.toFixed(1)} ${secondarySat}% 92%)`,
     "--case-info-glow":`hsla(${hue.toFixed(1)}, ${Math.min(66,sat+10)}%, 72%, .48)`,
+    "--case-lift-primary":`hsl(${hue.toFixed(1)} ${Math.min(90,sat+36)}% 24%)`,
+    "--case-lift-secondary":`hsl(${secondaryHue.toFixed(1)} ${Math.min(78,secondarySat+32)}% 58%)`,
     "--case-media-base":`hsl(${hue.toFixed(1)} ${Math.max(24,sat-7)}% 91%)`,
     "--case-media-soft":`hsl(${secondaryHue.toFixed(1)} ${Math.max(20,secondarySat-5)}% 95%)`,
     "--case-media-glow":`hsla(${secondaryHue.toFixed(1)}, ${Math.min(60,secondarySat+8)}%, 75%, .38)`,
@@ -403,13 +395,6 @@ export default function Home(){
   const [activeChapter,setActiveChapter]=useState(0);
   const [headerTheme,setHeaderTheme]=useState<"dark"|"light">("dark");
   const [headerOverHero,setHeaderOverHero]=useState(true);
-  const [liquidEnabled,setLiquidEnabled]=useState(true);
-  const [liquidPanelOpen,setLiquidPanelOpen]=useState(true);
-  const [liquidTuning,setLiquidTuning]=useState<HeroLiquidTuning>(DEFAULT_HERO_LIQUID);
-  const [blazePanelOpen,setBlazePanelOpen]=useState(true);
-  const [blazeTuning,setBlazeTuning]=useState<BlazeTuning>(DEFAULT_BLAZE_TUNING);
-  const [sparkPanelOpen,setSparkPanelOpen]=useState(true);
-  const [sparkTuning,setSparkTuning]=useState<HeroSparkTuning>(DEFAULT_HERO_SPARK_TUNING);
   const [finalCardDragging,setFinalCardDragging]=useState(false);
   const [finalCardRotation,setFinalCardRotation]=useState({x:0,y:0});
   const finalCardDragRef=useRef<{pointerId:number;startX:number;startY:number;baseX:number;baseY:number}|null>(null);
@@ -435,7 +420,7 @@ export default function Home(){
       window.history.scrollRestoration=previousRestoration;
     };
   },[]);
-  useEffect(()=>{if(window.matchMedia("(prefers-reduced-motion: reduce)").matches)setHeroIntroVisible(false)},[]);
+  useEffect(()=>{if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;const timer=window.setTimeout(()=>setHeroIntroVisible(false),0);return()=>window.clearTimeout(timer)},[]);
   useEffect(()=>{
     const nodes=Array.from(document.querySelectorAll<HTMLElement>(".content-rise"));
     if(!nodes.length)return;
@@ -558,13 +543,13 @@ export default function Home(){
     const resizeObserver=new ResizeObserver(()=>{const current=decoded.get(heroFrameTargetRef.current);if(current)draw(current)});
     resizeObserver.observe(canvas);
     return()=>{disposed=true;window.clearTimeout(warmTimer);resizeObserver.disconnect();requestHeroFrameRef.current=()=>{};decoded.forEach(bitmap=>bitmap.close());decoded.clear();pending.clear()};
-  },[liquidEnabled]);
+  },[]);
   useEffect(()=>{
     let ticking=false;
     const update=()=>{const hero=document.querySelector<HTMLElement>(".edition-hero");if(!hero)return;const range=Math.max(hero.offsetHeight-window.innerHeight,1);const progress=Math.min(1,Math.max(0,-hero.getBoundingClientRect().top/range));const frame=Math.round(scrollPhase(progress,0,HERO_VIDEO_END_SCROLL_PROGRESS)*(HERO_FRAME_COUNT-1));requestHeroFrameRef.current(frame);setHeroProgress(progress);setHeroStep(Math.min(2,Math.floor(progress*3)));ticking=false};
     const onScroll=()=>{if(!ticking){requestAnimationFrame(update);ticking=true}};
     update();window.addEventListener("scroll",onScroll,{passive:true});return()=>window.removeEventListener("scroll",onScroll);
-  },[liquidEnabled]);
+  },[]);
   useEffect(()=>{
     const motion=heroVideoMotionRef.current;
     const hero=motion?.closest<HTMLElement>(".hero-sticky");
@@ -596,7 +581,7 @@ export default function Home(){
     hero.addEventListener("pointermove",onPointerMove,{passive:true});
     hero.addEventListener("pointerleave",onPointerLeave);
     return()=>{hero.removeEventListener("pointermove",onPointerMove);hero.removeEventListener("pointerleave",onPointerLeave);hero.style.removeProperty("--hero-shift-x");hero.style.removeProperty("--hero-shift-y");if(frame)cancelAnimationFrame(frame)};
-  },[liquidEnabled]);
+  },[]);
   useEffect(()=>{
     const sections = ["chapter-1","chapter-3","chapter-4"];
     const navIndex: Record<string,number> = {"chapter-1":0,"chapter-3":1,"chapter-4":3};
@@ -662,14 +647,11 @@ export default function Home(){
   const portalRadius=portalProgress*90;
   const portalFeather=2.2+(1-portalProgress)*2.2;
   const portalMask=`radial-gradient(circle at 50% 50%, #000 0, #000 ${Math.max(0,portalRadius-portalFeather)}vmax, rgba(0,0,0,.72) ${portalRadius}vmax, transparent ${portalRadius+portalFeather}vmax)`;
-  const updateLiquid=<K extends keyof HeroLiquidTuning>(key:K,value:HeroLiquidTuning[K])=>setLiquidTuning(current=>({...current,[key]:value}));
-  const updateBlaze=<K extends keyof BlazeTuning>(key:K,value:BlazeTuning[K])=>setBlazeTuning(current=>({...current,[key]:value}));
-  const updateSpark=<K extends keyof HeroSparkTuning>(key:K,value:HeroSparkTuning[K])=>setSparkTuning(current=>({...current,[key]:value}));
   const selectInterest=(index:number)=>{setInterest(index);setInterestCycle(cycle=>cycle+1)};
-  const heroLiquidOptions:LiquidOptions={simResolution:96,dyeResolution:384,velocityDissipation:.93,pressure:.68,pressureIterations:3,force:liquidTuning.force,radius:liquidTuning.radius,distortion:liquidTuning.distortion,blend:liquidTuning.blend,intensity:liquidTuning.intensity,densityDissipation:liquidTuning.densityDissipation,curl:liquidTuning.curl,color:hexToLiquidColor(liquidTuning.color),rainbow:liquidTuning.rainbow};
-  const heroSparkBottomLayerCount=Math.min(12,Math.max(1,Math.round(sparkTuning.layers*sparkTuning.bottomDensity)));
-  const heroSparkTopLayerCount=Math.min(4,Math.max(0,Math.round(sparkTuning.layers*sparkTuning.topDensity)));
-  const heroSparkStyle={opacity:heroSparksOpacity*Math.min(sparkTuning.opacity,1),"--hero-spark-size":sparkTuning.size,"--hero-spark-brightness":sparkTuning.opacity,"--hero-spark-fade-height":`${sparkTuning.fadeHeight}vh`,"--hero-spark-travel-y":`-${sparkTuning.fadeHeight+28}vh`} as CSSProperties;
+  const heroLiquidOptions:LiquidOptions={simResolution:96,dyeResolution:384,velocityDissipation:.93,pressure:.68,pressureIterations:3,...DEFAULT_HERO_LIQUID,color:hexToLiquidColor(DEFAULT_HERO_LIQUID.color)};
+  const heroSparkBottomLayerCount=Math.min(12,Math.max(1,Math.round(DEFAULT_HERO_SPARK_TUNING.layers*DEFAULT_HERO_SPARK_TUNING.bottomDensity)));
+  const heroSparkTopLayerCount=Math.min(4,Math.max(0,Math.round(DEFAULT_HERO_SPARK_TUNING.layers*DEFAULT_HERO_SPARK_TUNING.topDensity)));
+  const heroSparkStyle={opacity:heroSparksOpacity*Math.min(DEFAULT_HERO_SPARK_TUNING.opacity,1),"--hero-spark-size":DEFAULT_HERO_SPARK_TUNING.size,"--hero-spark-brightness":DEFAULT_HERO_SPARK_TUNING.opacity,"--hero-spark-fade-height":`${DEFAULT_HERO_SPARK_TUNING.fadeHeight}vh`,"--hero-spark-travel-y":`-${DEFAULT_HERO_SPARK_TUNING.fadeHeight+28}vh`} as CSSProperties;
   return <main className="editions-page">
     <header className={`edition-header header-${headerTheme}${headerOverHero?" header-hero":""}`}>
       <div className="header-main">
@@ -684,10 +666,10 @@ export default function Home(){
 
     <section className={`edition-hero step-${heroStep}`}>
       <div className={`hero-sticky hero-scroll-scrubbed${heroIntroVisible?" hero-intro-playing":""}`}>
-        <div className="hero-scene scene-one hero-video-scene" style={{opacity:1,transform:"scale(1)"}}><div ref={heroVideoMotionRef} className="hero-video-motion">{liquidEnabled?<Liquid className="hero-liquid" pointerTarget=".hero-sticky" active={portalProgress<HERO_LIQUID_END_PORTAL_PROGRESS} forceFallback {...heroLiquidOptions}><div className="hero-video-content"><canvas key="hero-frames-v4-liquid" ref={heroFrameCanvasRef} className="hero-frame-canvas" aria-label="抖音兴趣卡首屏创意画面"/><div className="hero-video-shade"/></div></Liquid>:<div className="hero-video-content"><canvas key="hero-frames-v4-plain" ref={heroFrameCanvasRef} className="hero-frame-canvas" aria-label="抖音兴趣卡首屏创意画面"/><div className="hero-video-shade"/></div>}</div></div>
+        <div className="hero-scene scene-one hero-video-scene" style={{opacity:1,transform:"scale(1)"}}><div ref={heroVideoMotionRef} className="hero-video-motion"><Liquid className="hero-liquid" pointerTarget=".hero-sticky" active={portalProgress<HERO_LIQUID_END_PORTAL_PROGRESS} forceFallback {...heroLiquidOptions}><div className="hero-video-content"><canvas key="hero-frames-v4-liquid" ref={heroFrameCanvasRef} className="hero-frame-canvas" aria-label="抖音兴趣卡首屏创意画面"/><div className="hero-video-shade"/></div></Liquid></div></div>
         <div className="hero-scene scene-three" style={{opacity:portalProgress>.002?1:0,WebkitMaskImage:portalMask,maskImage:portalMask,transform:"scale(1)"}}><div className="white-field"/><Liquid className="scene-three-hover-liquid" style={{opacity:sceneThreeEnter,transform:"translate3d(var(--hero-shift-x,0),var(--hero-shift-y,0),0) scale(1.022)"}} pointerTarget=".hero-sticky" active={sceneThreeEnter>.01} forceFallback simResolution={96} dyeResolution={384} densityDissipation={.955} velocityDissipation={.93} pressure={.68} pressureIterations={3} curl={1.4} radius={.24} force={.85} intensity={.25} distortion={1.1} blend={6.5} color={[.2,.56,1]} rainbow><div className="hero-line-art"><img src="/assets/hero-line-art-final-frames-v4.png" alt=""/></div></Liquid><div className="hero-line-art-wash"/></div>
         <PortalTransition progress={portalProgress}/>
-        <div className={`hero-sparks${sparkTuning.enabled?"":" is-disabled"}`} style={heroSparkStyle} aria-hidden="true">{Array.from({length:heroSparkBottomLayerCount},(_,index)=>{const motion=HERO_SPARK_LAYER_MOTION[index%HERO_SPARK_LAYER_MOTION.length];return <i className="hero-spark-layer hero-spark-layer-bottom" key={`bottom-${index}`} style={{"--hero-spark-layer-duration":`${(motion.duration/sparkTuning.speed).toFixed(2)}s`,"--hero-spark-layer-delay":`${motion.delay}s`,"--hero-spark-start-x":`${motion.startX}vw`,"--hero-spark-start-y":`${motion.startY}vh`,"--hero-spark-end-x":`${motion.endX}vw`,"--hero-spark-layer-scale":motion.scale} as CSSProperties}/>})}{Array.from({length:heroSparkTopLayerCount},(_,index)=>{const motion=HERO_SPARK_LAYER_MOTION[(index+heroSparkBottomLayerCount+2)%HERO_SPARK_LAYER_MOTION.length];return <i className="hero-spark-layer hero-spark-layer-top" key={`top-${index}`} style={{"--hero-spark-layer-duration":`${(motion.duration/sparkTuning.speed).toFixed(2)}s`,"--hero-spark-layer-delay":`${motion.delay}s`,"--hero-spark-start-x":`${motion.startX}vw`,"--hero-spark-start-y":`${motion.startY}vh`,"--hero-spark-end-x":`${motion.endX}vw`,"--hero-spark-layer-scale":motion.scale} as CSSProperties}/>})}</div>
+        <div className="hero-sparks" style={heroSparkStyle} aria-hidden="true">{Array.from({length:heroSparkBottomLayerCount},(_,index)=>{const motion=HERO_SPARK_LAYER_MOTION[index%HERO_SPARK_LAYER_MOTION.length];return <i className="hero-spark-layer hero-spark-layer-bottom" key={`bottom-${index}`} style={{"--hero-spark-layer-duration":`${(motion.duration/DEFAULT_HERO_SPARK_TUNING.speed).toFixed(2)}s`,"--hero-spark-layer-delay":`${motion.delay}s`,"--hero-spark-start-x":`${motion.startX}vw`,"--hero-spark-start-y":`${motion.startY}vh`,"--hero-spark-end-x":`${motion.endX}vw`,"--hero-spark-layer-scale":motion.scale} as CSSProperties}/>})}{Array.from({length:heroSparkTopLayerCount},(_,index)=>{const motion=HERO_SPARK_LAYER_MOTION[(index+heroSparkBottomLayerCount+2)%HERO_SPARK_LAYER_MOTION.length];return <i className="hero-spark-layer hero-spark-layer-top" key={`top-${index}`} style={{"--hero-spark-layer-duration":`${(motion.duration/DEFAULT_HERO_SPARK_TUNING.speed).toFixed(2)}s`,"--hero-spark-layer-delay":`${motion.delay}s`,"--hero-spark-start-x":`${motion.startX}vw`,"--hero-spark-start-y":`${motion.startY}vh`,"--hero-spark-end-x":`${motion.endX}vw`,"--hero-spark-layer-scale":motion.scale} as CSSProperties}/>})}</div>
         {heroIntroVisible&&<div className="hero-intro-liquid-layer" aria-hidden="true" onAnimationEnd={()=>setHeroIntroVisible(false)}><Liquid className="hero-intro-liquid" intro overlayOnly forceFallback simResolution={64} dyeResolution={256} densityDissipation={.92} dissipationVariation={.88} velocityDissipation={.9} pressure={.55} pressureIterations={2} curl={1.05} radius={7.5} force={.4} intensity={4.8} distortion={0} blend={0} color={[.93,.97,1]} rainbow={false}><div className="hero-intro-liquid-content"/></Liquid></div>}
         <div className="hero-index hero-copy" style={{opacity:1,color:heroInk,transform:`translate(-50%,calc(-50% + ${112*(1-copySettle)}px))`}}>
           <small className="hero-badge-raster" style={{opacity:1,transform:"none"}} aria-label="抖音兴趣卡"><img src="/assets/hero-interest-badge@3x.png" alt="" aria-hidden="true"/></small>
@@ -698,18 +680,6 @@ export default function Home(){
         </div>
         <div className="hero-step-label" style={{color:heroInk}}><b>{String(heroStep+1).padStart(2,"0")}</b><span>{["兴趣，从一个真实问题开始","真实需求，正在形成可创作的回应","生成、预览、发布，一步完成"][heroStep]}</span></div>
         <div className="hero-scroll-hint" style={{opacity:1,color:heroInk}}>向下滚动 ↓</div>
-        {SHOW_LIQUID_TUNER&&<aside className={`liquid-tuner ${liquidPanelOpen?"open":"closed"}`} aria-label="Liquid 效果实时调节器">
-          {liquidPanelOpen?<><div className="liquid-tuner-head"><div><strong>Liquid 调节</strong><small>首屏实时预览</small></div><button type="button" onClick={()=>setLiquidPanelOpen(false)} aria-label="收起 Liquid 调节器">−</button></div><label className="liquid-switch"><span>启用效果</span><input type="checkbox" checked={liquidEnabled} onChange={event=>setLiquidEnabled(event.target.checked)}/></label><div className={liquidEnabled?"liquid-controls":"liquid-controls disabled"}>
-            <LiquidRange label="跟手力度" value={liquidTuning.force} min={.05} max={1.5} step={.05} onChange={value=>updateLiquid("force",value)}/>
-            <LiquidRange label="作用范围" value={liquidTuning.radius} min={.03} max={.8} step={.01} onChange={value=>updateLiquid("radius",value)}/>
-            <LiquidRange label="画面形变" value={liquidTuning.distortion} min={0} max={.8} step={.01} onChange={value=>updateLiquid("distortion",value)}/>
-            <LiquidRange label="颜色显现" value={liquidTuning.blend} min={0} max={10} step={.1} onChange={value=>updateLiquid("blend",value)}/>
-            <LiquidRange label="色彩强度" value={liquidTuning.intensity} min={0} max={4} step={.05} onChange={value=>updateLiquid("intensity",value)}/>
-            <LiquidRange label="轨迹残留" value={liquidTuning.densityDissipation} min={.7} max={.99} step={.005} onChange={value=>updateLiquid("densityDissipation",value)}/>
-            <LiquidRange label="流体涡旋" value={liquidTuning.curl} min={0} max={4} step={.05} onChange={value=>updateLiquid("curl",value)}/>
-            <label className="liquid-switch compact liquid-rainbow"><span><b>丰富叠色</b><small>按流动方向生成多色</small></span><input type="checkbox" checked={liquidTuning.rainbow} onChange={event=>updateLiquid("rainbow",event.target.checked)}/></label><div className={`liquid-fixed-color ${liquidTuning.rainbow?"inactive":""}`}><div className="liquid-color-row"><span>固定轨迹色</span><input type="color" value={liquidTuning.color} onChange={event=>updateLiquid("color",event.target.value)}/></div><div className="liquid-swatches">{["#20d5ec","#fe2c55","#8b5cf6","#eef7ff"].map(color=><button type="button" key={color} aria-label={`使用颜色 ${color}`} className={liquidTuning.color===color?"active":""} style={{background:color}} onClick={()=>updateLiquid("color",color)}/>)}</div></div>
-          </div><button className="liquid-reset" type="button" onClick={()=>setLiquidTuning(DEFAULT_HERO_LIQUID)}>恢复轻量默认值</button></>:<button className="liquid-open" type="button" onClick={()=>setLiquidPanelOpen(true)}>Liquid</button>}
-        </aside>}
       </div>
     </section>
 
@@ -736,7 +706,7 @@ export default function Home(){
         </section>
 
         <section id="chapter-5" className="chapter chapter-final">
-          <Blaze className="final-blaze" style={{"--blaze-brightness":blazeTuning.brightness,"--blaze-saturation":blazeTuning.saturation} as CSSProperties} height={blazeTuning.height} distortion={blazeTuning.distortion} distortionScale={blazeTuning.distortionScale} speed={blazeTuning.speed} sparks={blazeTuning.sparks} sparkDensity={blazeTuning.sparkDensity} sparkSize={blazeTuning.sparkSize} layers={blazeTuning.layers} smoke={blazeTuning.smoke} glow={blazeTuning.glow} sparkColor={hexToLiquidColor(blazeTuning.sparkColor)} smokeColor={hexToLiquidColor(blazeTuning.smokeColor)}><div className="final-blaze-field"/></Blaze>
+          <Blaze className="final-blaze" style={{"--blaze-brightness":DEFAULT_BLAZE_TUNING.brightness,"--blaze-saturation":DEFAULT_BLAZE_TUNING.saturation} as CSSProperties} height={DEFAULT_BLAZE_TUNING.height} distortion={DEFAULT_BLAZE_TUNING.distortion} distortionScale={DEFAULT_BLAZE_TUNING.distortionScale} speed={DEFAULT_BLAZE_TUNING.speed} sparks={DEFAULT_BLAZE_TUNING.sparks} sparkDensity={DEFAULT_BLAZE_TUNING.sparkDensity} sparkSize={DEFAULT_BLAZE_TUNING.sparkSize} layers={DEFAULT_BLAZE_TUNING.layers} smoke={DEFAULT_BLAZE_TUNING.smoke} glow={DEFAULT_BLAZE_TUNING.glow} sparkColor={hexToLiquidColor(DEFAULT_BLAZE_TUNING.sparkColor)} smokeColor={hexToLiquidColor(DEFAULT_BLAZE_TUNING.smokeColor)}><div className="final-blaze-field"/></Blaze>
           <div className="final-bg-word">IDEA</div><div className="final-copy"><SoftBlurInGroup kicker="准备好了吗？" title={"从一个想法开始，\n做出你的第一张兴趣卡"} body="进入抖音创作者中心，用一句话生成并发布你的兴趣卡。"/><div className="content-rise" style={{"--content-rise-delay":"240ms"} as CSSProperties}><a className="responsive-button" href={CREATE_URL}><ResponsiveButtonLabel full="开始创作" short="创作"/> <ButtonArrow/></a><a className="responsive-button" href="#chapter-4"><ResponsiveButtonLabel full="查看课程" short="课程"/></a></div></div>
           <div className={`interest-card-showcase${finalCardDragging?" is-dragging":""}`} aria-label="可拖拽旋转的三维抖音兴趣卡示例" onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);finalCardDragRef.current={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,baseX:finalCardRotation.x,baseY:finalCardRotation.y};setFinalCardDragging(true)}} onPointerMove={event=>{const drag=finalCardDragRef.current;if(!drag||drag.pointerId!==event.pointerId)return;setFinalCardRotation({x:Math.max(-6,Math.min(6,drag.baseX-(event.clientY-drag.startY)*.055)),y:drag.baseY+(event.clientX-drag.startX)*.34})}} onPointerUp={event=>{if(finalCardDragRef.current?.pointerId!==event.pointerId)return;finalCardDragRef.current=null;setFinalCardDragging(false);event.currentTarget.releasePointerCapture(event.pointerId)}} onPointerCancel={()=>{finalCardDragRef.current=null;setFinalCardDragging(false)}}>
             <div className="interest-flip-card content-rise" style={{"--content-rise-delay":"320ms","--card-drag-x":`${finalCardRotation.x}deg`,"--card-drag-y":`${finalCardRotation.y}deg`} as CSSProperties}>
@@ -756,36 +726,6 @@ export default function Home(){
         </section>
       </div>
     </div>
-
-    {SHOW_BLAZE_TUNER&&<aside className={`blaze-tuner ${blazePanelOpen?"open":"closed"}`} aria-label="蓝色火焰实时调节器">
-      {blazePanelOpen?<><div className="blaze-tuner-head"><div><strong>Blaze 火焰调节</strong><small>底部最终屏实时预览</small></div><button type="button" onClick={()=>setBlazePanelOpen(false)} aria-label="收起火焰调节器">−</button></div><div className="blaze-controls">
-        <LiquidRange label="火焰高度" value={blazeTuning.height} min={.2} max={1} step={.01} onChange={value=>updateBlaze("height",value)}/>
-        <LiquidRange label="画面形变" value={blazeTuning.distortion} min={0} max={.8} step={.01} onChange={value=>updateBlaze("distortion",value)}/>
-        <LiquidRange label="形变细节" value={blazeTuning.distortionScale} min={.2} max={1.5} step={.01} onChange={value=>updateBlaze("distortionScale",value)}/>
-        <LiquidRange label="动画速度" value={blazeTuning.speed} min={.1} max={1.5} step={.01} onChange={value=>updateBlaze("speed",value)}/>
-        <LiquidRange label="火星亮度" value={blazeTuning.sparks} min={0} max={2} step={.01} onChange={value=>updateBlaze("sparks",value)}/>
-        <LiquidRange label="火星密度" value={blazeTuning.sparkDensity} min={.5} max={3} step={.01} onChange={value=>updateBlaze("sparkDensity",value)}/>
-        <LiquidRange label="火星大小" value={blazeTuning.sparkSize} min={.3} max={2} step={.01} onChange={value=>updateBlaze("sparkSize",value)}/>
-        <LiquidRange label="火星层数" value={blazeTuning.layers} min={1} max={8} step={1} onChange={value=>updateBlaze("layers",value)}/>
-        <LiquidRange label="烟雾浓度" value={blazeTuning.smoke} min={0} max={1.5} step={.01} onChange={value=>updateBlaze("smoke",value)}/>
-        <LiquidRange label="底部辉光" value={blazeTuning.glow} min={0} max={4} step={.05} onChange={value=>updateBlaze("glow",value)}/>
-        <LiquidRange label="整体亮度" value={blazeTuning.brightness} min={.5} max={2.5} step={.01} onChange={value=>updateBlaze("brightness",value)}/>
-        <LiquidRange label="颜色饱和" value={blazeTuning.saturation} min={.5} max={2} step={.01} onChange={value=>updateBlaze("saturation",value)}/>
-        <div className="blaze-color-grid"><label><span>火星颜色</span><input type="color" value={blazeTuning.sparkColor} onChange={event=>updateBlaze("sparkColor",event.target.value)}/></label><label><span>烟雾颜色</span><input type="color" value={blazeTuning.smokeColor} onChange={event=>updateBlaze("smokeColor",event.target.value)}/></label></div>
-      </div><button className="blaze-reset" type="button" onClick={()=>setBlazeTuning(DEFAULT_BLAZE_TUNING)}>恢复当前默认值</button></>:<button className="blaze-open" type="button" onClick={()=>setBlazePanelOpen(true)}>Blaze</button>}
-    </aside>}
-
-    {SHOW_SPARK_TUNER&&<aside className={`spark-tuner ${sparkPanelOpen?"open":"closed"}`} aria-label="首屏火星实时调节器">
-      {sparkPanelOpen?<><div className="spark-tuner-head"><div><strong>首屏火星</strong><small>仅桌面端显示，不影响视频滚动</small></div><button type="button" onClick={()=>setSparkPanelOpen(false)} aria-label="收起火星调节器">−</button></div><label className="liquid-switch"><span>显示火星</span><input type="checkbox" checked={sparkTuning.enabled} onChange={event=>updateSpark("enabled",event.target.checked)}/></label><div className={sparkTuning.enabled?"spark-tuner-controls":"spark-tuner-controls disabled"}>
-        <LiquidRange label="底部密度" value={sparkTuning.bottomDensity} min={.25} max={4} step={.25} onChange={value=>updateSpark("bottomDensity",value)}/>
-        <LiquidRange label="顶部密度" value={sparkTuning.topDensity} min={0} max={2} step={.25} onChange={value=>updateSpark("topDensity",value)}/>
-        <LiquidRange label="火星层数" value={sparkTuning.layers} min={1} max={8} step={1} onChange={value=>updateSpark("layers",value)}/>
-        <LiquidRange label="火星大小" value={sparkTuning.size} min={.25} max={3} step={.05} onChange={value=>updateSpark("size",value)}/>
-        <LiquidRange label="上浮速度" value={sparkTuning.speed} min={.15} max={4} step={.05} onChange={value=>updateSpark("speed",value)}/>
-        <LiquidRange label="消失位置（vh）" value={sparkTuning.fadeHeight} min={18} max={130} step={1} onChange={value=>updateSpark("fadeHeight",value)}/>
-        <LiquidRange label="整体亮度" value={sparkTuning.opacity} min={.05} max={2.5} step={.05} onChange={value=>updateSpark("opacity",value)}/>
-      </div><button className="spark-tuner-reset" type="button" onClick={()=>setSparkTuning(DEFAULT_HERO_SPARK_TUNING)}>恢复当前默认值</button></>:<button className="spark-tuner-open" type="button" onClick={()=>setSparkPanelOpen(true)}>火星</button>}
-    </aside>}
 
     <footer className="edition-footer">
       <div className="footer-primary">

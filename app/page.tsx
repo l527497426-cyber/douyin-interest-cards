@@ -722,14 +722,14 @@ export default function Home(){
               </svg>
             </div>
           </article></div>
-          <dialog id="community-qr-dialog" className="community-dialog" ref={communityDialogRef} aria-labelledby="community-dialog-title" aria-describedby="community-dialog-hint" onClick={event=>{if(event.target===event.currentTarget)event.currentTarget.close()}}>
+          <dialog id="community-qr-dialog" className="community-dialog" ref={communityDialogRef} aria-labelledby="community-dialog-title" aria-describedby={COMMUNITY_QR_SRC ? "community-dialog-hint" : undefined} onClick={event=>{if(event.target===event.currentTarget)event.currentTarget.close()}}>
             <div className="community-dialog-content">
               <button type="button" className="community-dialog-close" aria-label="关闭二维码弹窗" onClick={()=>communityDialogRef.current?.close()}>
                 <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
               </button>
               <h3 id="community-dialog-title">加入创作者社群</h3>
               <img className="community-dialog-code" src={COMMUNITY_QR_SRC || "/assets/community-qr-demo.svg"} width={172} height={172} alt={COMMUNITY_QR_SRC ? "飞书创作者社群入群二维码" : "示意二维码，不可扫码"}/>
-              <p id="community-dialog-hint">{COMMUNITY_QR_SRC ? "使用飞书扫码入群" : "演示二维码，暂不可扫码"}</p>
+              {COMMUNITY_QR_SRC && <p id="community-dialog-hint">使用飞书扫码入群</p>}
             </div>
           </dialog>
         </section>

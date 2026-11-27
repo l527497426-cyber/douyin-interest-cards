@@ -5,6 +5,7 @@ import Blaze from "../components/canvasui/Blaze";
 import Liquid, { type LiquidOptions } from "../components/canvasui/Liquid";
 
 const CREATE_URL = "https://creator.douyin.com/creator-micro/ai-application/agent_market?_withType=true&space=%22ai_ext_personal%22";
+const COMMUNITY_QR_SRC: string | undefined = process.env.NEXT_PUBLIC_COMMUNITY_QR_SRC;
 // The portal starts at reference frame 187/193, mapped into the video's 82% scrub range.
 const HERO_PORTAL_START_SCROLL_PROGRESS=.794;
 const HERO_PORTAL_END_SCROLL_PROGRESS=.98;
@@ -378,6 +379,7 @@ function HorizontalCases(){
 }
 
 export default function Home(){
+  const communityDialogRef=useRef<HTMLDialogElement>(null);
   const heroFrameCanvasRef=useRef<HTMLCanvasElement>(null);
   const heroVideoMotionRef=useRef<HTMLDivElement>(null);
   const heroCtaRef=useRef<HTMLAnchorElement>(null);
@@ -702,7 +704,34 @@ export default function Home(){
 
         <section id="chapter-4" className="chapter chapter-support">
           <div className="chapter-head"><div><SoftBlurInGroup kicker="需要帮助时" title={"学习、发布、反馈，\n一站找到"} body="从学习入门到发布上线，再到社群反馈，按当前任务进入对应支持。"/></div></div>
-          <div className="support-stack content-rise" style={{"--content-rise-delay":"180ms"} as CSSProperties}><article><b>01</b><small>入门课程</small><h3>通过短课与示例，<br/>快速完成第一张兴趣卡。</h3><a className="responsive-button" href="#"><ResponsiveButtonLabel full="查看兴趣卡课程" short="课程"/> <ButtonArrow dark/></a><div className="support-shape play">▶</div></article><article><b>02</b><small>发布指南</small><h3>发布规范、上线检查与<br/>常见问题一次看清。</h3><a className="responsive-button" href="#"><ResponsiveButtonLabel full="查看发布指南" short="指南"/> <ButtonArrow dark/></a><div className="support-shape list">☷</div></article><article><b>03</b><small>社区问答与反馈</small><h3>加入飞书群，与官方和<br/>创作者直接交流。</h3><a className="responsive-button" href="#"><ResponsiveButtonLabel full="进入创作者社群" short="社群"/> <ButtonArrow dark/></a><div className="support-shape qr">QR</div></article></div>
+          <div className="support-stack content-rise" style={{"--content-rise-delay":"180ms"} as CSSProperties}><article><b>01</b><small>入门课程</small><h3>通过短课与示例，<br/>快速完成第一张兴趣卡。</h3><a className="responsive-button" href="#"><ResponsiveButtonLabel full="查看兴趣卡课程" short="课程"/> <ButtonArrow dark/></a><div className="support-shape play">▶</div></article><article><b>02</b><small>发布指南</small><h3>发布规范、上线检查与<br/>常见问题一次看清。</h3><a className="responsive-button" href="#"><ResponsiveButtonLabel full="查看发布指南" short="指南"/> <ButtonArrow dark/></a><div className="support-shape list" aria-hidden="true">
+              <svg className="support-guide-icon" width="24" height="24" viewBox="0 0 24 24" fill="#fff" focusable="false">
+                <path fillRule="evenodd" d="M6 2.75h12A3.25 3.25 0 0 1 21.25 6v12A3.25 3.25 0 0 1 18 21.25H6A3.25 3.25 0 0 1 2.75 18V6A3.25 3.25 0 0 1 6 2.75Zm.5 5.5a1 1 0 1 0 0 2h1a1 1 0 1 0 0-2h-1Zm4.25 0a1 1 0 1 0 0 2h6.75a1 1 0 1 0 0-2h-6.75ZM6.5 13.75a1 1 0 1 0 0 2h1a1 1 0 1 0 0-2h-1Zm4.25 0a1 1 0 1 0 0 2h6.75a1 1 0 1 0 0-2h-6.75Z"/>
+              </svg>
+            </div></article><article className="support-community">
+            <b>03</b><small>社区问答与反馈</small>
+            <h3>加入飞书群，与官方和<br/>创作者直接交流。</h3>
+            <button type="button" className="responsive-button community-trigger" aria-haspopup="dialog" aria-controls="community-qr-dialog" onClick={()=>communityDialogRef.current?.showModal()}><ResponsiveButtonLabel full="进入创作者社群" short="社群"/> <ButtonArrow dark/></button>
+            <div className="support-shape qr community-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="#fff" focusable="false" style={{display:"block",width:"42%",height:"auto",transform:"translate(4px,-2px) rotate(8deg)",pointerEvents:"none"}}>
+                <path d="M6.13732 3.80654C8.76716 5.98777 11.0232 8.49408 12.7428 11.4327L14.4397 9.75535C15.2458 8.96545 16.2113 8.34129 17.258 7.93496C16.7802 6.31936 16.0033 4.98005 14.9403 3.65376C14.8135 3.49449 14.6185 3.40346 14.4137 3.40346L6.28362 3.40021C6.06906 3.40021 5.9748 3.67001 6.13732 3.80654Z"/>
+                <path d="M20.5703 14.1922L20.58 14.1793L20.6155 14.1146C20.6026 14.1372 20.5864 14.1631 20.5703 14.1922Z"/>
+                <path d="M11.0361 14.5567C12.2714 15.0833 13.3766 15.5287 14.6899 15.883C17.0207 16.5136 19.2311 15.5709 20.3234 13.4872L21.6432 10.8541C21.939 10.2105 22.3128 9.6156 22.7647 9.07273C21.9715 8.78016 21.3149 8.63064 20.4534 8.63064C18.5518 8.63064 16.7606 9.36205 15.4018 10.6948L13.3831 12.6875C12.6647 13.3929 11.878 14.0203 11.0361 14.5567Z"/>
+                <path d="M20.7945 13.7752L20.8039 13.7566L20.8101 13.7473C20.8039 13.7535 20.8007 13.7659 20.7945 13.7752Z"/>
+                <path d="M1.62519 9.74885C1.47889 9.60906 1.23511 9.70983 1.23511 9.91463L1.23834 17.8724C1.23834 18.1 1.34887 18.3112 1.53416 18.4348C3.66663 19.8521 6.15343 20.5998 8.72151 20.5998C11.166 20.5998 13.5488 19.9171 15.6098 18.6266C16.3867 18.139 16.9979 17.7099 17.6512 17.0792C16.6013 17.388 15.4472 17.4075 14.2835 17.0922C9.37815 15.7594 5.20097 13.2044 1.62519 9.74885Z"/>
+              </svg>
+            </div>
+          </article></div>
+          <dialog id="community-qr-dialog" className="community-dialog" ref={communityDialogRef} aria-labelledby="community-dialog-title" aria-describedby="community-dialog-hint" onClick={event=>{if(event.target===event.currentTarget)event.currentTarget.close()}}>
+            <div className="community-dialog-content">
+              <button type="button" className="community-dialog-close" aria-label="关闭二维码弹窗" onClick={()=>communityDialogRef.current?.close()}>
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+              </button>
+              <h3 id="community-dialog-title">加入创作者社群</h3>
+              <img className="community-dialog-code" src={COMMUNITY_QR_SRC || "/assets/community-qr-demo.svg"} width={172} height={172} alt={COMMUNITY_QR_SRC ? "飞书创作者社群入群二维码" : "示意二维码，不可扫码"}/>
+              <p id="community-dialog-hint">{COMMUNITY_QR_SRC ? "使用飞书扫码入群" : "演示二维码，暂不可扫码"}</p>
+            </div>
+          </dialog>
         </section>
 
         <section id="chapter-5" className="chapter chapter-final">
